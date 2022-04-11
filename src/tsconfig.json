@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"exactOptionalPropertyTypes": true,
+		"noUncheckedIndexedAccess": true,
+		"strict": true,
+		"useUnknownInCatchVariables": true,
+		"strictNullChecks": true,
+		"lib": [ "DOM" ]
+	},
+	"extends": "../tsconfig.json",
+	"include": [ "**/*" ]
+}

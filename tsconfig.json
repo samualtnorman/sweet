@@ -1,0 +1,22 @@
+{
+	"compilerOptions": {
+		"allowUnreachableCode": false,
+		"allowUnusedLabels": false,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"moduleResolution": "Node",
+		"resolveJsonModule": true,
+		"noEmit": true,
+		"checkJs": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"target": "ESNext",
+		"skipLibCheck": true,
+		"module": "ESNext",
+		"lib": [ "ESNext" ]
+	},
+	"include": [ "*", "scripts/*", "test/*" ]
+}
