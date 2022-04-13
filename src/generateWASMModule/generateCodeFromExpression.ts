@@ -1,16 +1,16 @@
-import { Node, NodeType } from "../parse"
+import { Node, NodeKind } from "../parse"
 import { Opcode, toLEB128, ValueType } from "./shared"
 import { transformNode } from "./getNodeType"
 
 export function generateCodeFromExpression(node: Node.Expression): number[] {
-	switch (node.type) {
-		case NodeType.Integer:
+	switch (node.kind) {
+		case NodeKind.SignedInteger:
 			return [ Opcode.PushI64, ...toLEB128(node.value) ]
 
-		case NodeType.Float:
+		case NodeKind.Float:
 			return [ Opcode.PushF64, ...new Uint8Array(new Float64Array([ node.value ]).buffer) ]
 
-		case NodeType.Addition: {
+		case NodeKind.Addition: {
 			const type = transformNode(node)
 			const code = [ ...generateCodeFromExpression(node.left), ...generateCodeFromExpression(node.right) ]
 
@@ -39,7 +39,7 @@ export function generateCodeFromExpression(node: Node.Expression): number[] {
 		}
 	}
 
-	throw new Error(`${HERE} unhandled node type ${NodeType[node.type]}`)
+	throw new Error(`${HERE} unhandled node type ${NodeKind[node.kind]}`)
 }
 
 export default generateCodeFromExpression

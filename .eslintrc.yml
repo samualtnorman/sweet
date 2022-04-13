@@ -87,7 +87,7 @@ rules:
   "@typescript-eslint/func-call-spacing": warn
   key-spacing: warn
   "@typescript-eslint/keyword-spacing": warn
-  linebreak-style: warn
+  # linebreak-style: warn
   new-parens: warn
   no-multi-spaces: warn
   no-whitespace-before-property: warn

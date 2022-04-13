@@ -3,10 +3,10 @@ import { execFile as executeFile_ } from "child_process"
 import { readFile, writeFile } from "fs/promises"
 import { promisify } from "util"
 import generateWASMModule from "./generateWASMModule"
-// import passExpressions, { createContext, printContext, Type } from "./generateWASMModule/passExpressions"
 import parse from "./parse"
 import { printNodes } from "./printNodes"
 import tokenise from "./tokenise"
+import passExpressions, { printContext } from "./passExpressions"
 
 const executeFile = promisify(executeFile_)
 
@@ -15,12 +15,12 @@ const nodes = [ ...parse([ ...tokenise(source) ]) ]
 
 console.log(`\nnodes:`)
 console.log(printNodes(nodes, `    `))
+
+const context = passExpressions(nodes)
+
 console.log(`\ncontext:`)
+console.log(printContext(context, `    `))
 
-// const context = createContext()
-
-// passExpressions(nodes, context)
-// console.log(printContext(context))
 console.log(`\nnodes:`)
 console.log(printNodes(nodes, `    `))
 

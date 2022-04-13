@@ -1,4 +1,4 @@
-import { Node, NodeType } from "./parse"
+import { Node, NodeKind } from "./parse"
 
 export function printNodes(nodes: Node[], indentString = `\t`, indentLevel = 0): string {
 	let o = ``
@@ -10,8 +10,8 @@ export function printNodes(nodes: Node[], indentString = `\t`, indentLevel = 0):
 }
 
 export function printNode(node: Node, indentString = `\t`, indentLevel = 0): string {
-	const { type, ...nodeProperties } = node
-	let o = `${NodeType[type]}\n`
+	const { kind, ...nodeProperties } = node
+	let o = `${NodeKind[kind]}\n`
 
 	indentLevel++
 

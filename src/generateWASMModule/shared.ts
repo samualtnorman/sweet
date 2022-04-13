@@ -11,7 +11,7 @@ export enum Opcode {
 	BranchTable = 0x0E,
 	Return = 0x0F,
 	Call = 0x10,
-	IndirectCall = 0x011,
+	IndirectCall = 0x11,
 	Drop = 0x1A,
 	Select = 0x1B,
 	GetLocal = 0x20,
@@ -226,7 +226,7 @@ export function getIntegerLength(number: bigint) {
 
 	number = number < 0n ? -number : number
 
-	while (number >>= 1n)
+	while ((number >>= 1n))
 		length++
 
 	return length

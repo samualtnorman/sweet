@@ -10,7 +10,7 @@ export function* traverse(node: Node | Node[]): Generator<Node, void> {
 		return
 	}
 
-	const { type, ...nodeProperties } = node
+	const { kind, ...nodeProperties } = node
 
 	for (const node of Object.values(nodeProperties)) {
 		if (Array.isArray(node))

@@ -1,5 +1,5 @@
 import { Opcode, ValueType } from "./shared"
-import { Node, NodeType } from "../parse"
+import { Node, NodeKind } from "../parse"
 import { assert } from "console"
 
 type Context<T extends Node> = {
@@ -21,18 +21,18 @@ type Context<T extends Node> = {
 
 
 export function transformNode(node: Node): ValueType {
-	switch (node.type) {
-		case NodeType.Integer: {
+	switch (node.kind) {
+		case NodeKind.SignedInteger: {
 			if (node.value > MAX_I32 || node.value < MIN_I32)
 				return ValueType.I64
 
 			return ValueType.I32
 		}
 
-		case NodeType.Float:
+		case NodeKind.Float:
 			return ValueType.F64
 
-		case NodeType.Addition: {
+		case NodeKind.Addition: {
 			const leftType = transformNode(node.left)
 			const rightType = transformNode(node.right)
 			const resolvedType = resolveTypes(leftType, rightType)
@@ -44,7 +44,7 @@ export function transformNode(node: Node): ValueType {
 		}
 	}
 
-	throw new Error(`${HERE} unhandled node type ${NodeType[node.type]}`)
+	throw new Error(`${HERE} unhandled node type ${NodeKind[node.kind]}`)
 }
 
 export default transformNode
@@ -54,7 +54,7 @@ export function wrapExpression(expression: Node.Expression, currentType: ValueTy
 		return expression
 
 	const instructions: number[] = []
-	const wrapperExpression: Node.Expression = { type: NodeType.RawInstructions, expression, instructions }
+	const wrapperExpression: Node.Expression = { kind: NodeKind.RawInstructions, expression, instructions }
 
 	switch (currentType) {
 		case ValueType.I32: {

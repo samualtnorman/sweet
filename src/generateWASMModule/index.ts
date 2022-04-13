@@ -1,5 +1,5 @@
 import { assert } from "@samual/lib"
-import { Node, NodeType } from "../parse"
+import { Node, NodeKind } from "../parse"
 import traverse from "../traverse"
 import generateCodeFromExpression from "./generateCodeFromExpression"
 import generateCodeSection from "./generateCodeSection"
@@ -16,7 +16,7 @@ export function generateWASMModule(ast: Node.Statement[]): number[] {
 	const wasmFunctions = []
 
 	for (const node of traverse(ast)) {
-		if (node.type != NodeType.Function)
+		if (node.kind != NodeKind.Function)
 			continue
 
 		const instructions = []
@@ -24,22 +24,22 @@ export function generateWASMModule(ast: Node.Statement[]): number[] {
 		const parameters = []
 
 		for (const parameter of node.parameters) {
-			assert(parameter.parameterType.type == NodeType.Identifier, `${HERE} unhandled node ${NodeType[parameter.parameterType.type]}`)
+			assert(parameter.type.kind == NodeKind.Identifier, `${HERE} unhandled node ${NodeKind[parameter.type.kind]}`)
 
-			if (parameter.parameterType.name == `i32`)
+			if (parameter.type.name == `i32`)
 				parameters.push(ValueType.I32)
-			else if (parameter.parameterType.name == `i64`)
+			else if (parameter.type.name == `i64`)
 				parameters.push(ValueType.I64)
-			else if (parameter.parameterType.name == `f32`)
+			else if (parameter.type.name == `f32`)
 				parameters.push(ValueType.F32)
-			else if (parameter.parameterType.name == `f64`)
+			else if (parameter.type.name == `f64`)
 				parameters.push(ValueType.F64)
 			else
-				throw new Error(`${HERE} unhandled type ${parameter.parameterType.name}`)
+				throw new Error(`${HERE} unhandled type ${parameter.type.name}`)
 		}
 
 		assert(node.returnType, HERE)
-		assert(node.returnType.type == NodeType.Identifier, `${HERE} unhandled node ${NodeType[node.returnType.type]}`)
+		assert(node.returnType.kind == NodeKind.Identifier, `${HERE} unhandled node ${NodeKind[node.returnType.kind]}`)
 
 		let returnType
 
@@ -57,8 +57,8 @@ export function generateWASMModule(ast: Node.Statement[]): number[] {
 		types.push({ type: ValueType.Function, parameters, result: [ returnType ] })
 
 		for (const statement of node.body) {
-			switch (statement.type) {
-				case NodeType.Return: {
+			switch (statement.kind) {
+				case NodeKind.Return: {
 					assert(statement.expression, HERE)
 
 					const expressionType = transformNode(statement.expression)
@@ -68,7 +68,7 @@ export function generateWASMModule(ast: Node.Statement[]): number[] {
 				} break
 
 				default:
-					throw new Error(`${HERE} unhandled node type ${NodeType[statement.type]}`)
+					throw new Error(`${HERE} unhandled node type ${NodeKind[statement.kind]}`)
 			}
 		}
 

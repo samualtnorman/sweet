@@ -1,5 +1,5 @@
 import { assert } from "@samual/lib"
-import { Node, NodeType } from "../parse"
+import { Node, NodeKind } from "../parse"
 import printNode from "../printNodes"
 
 const DEBUG = false
@@ -70,15 +70,15 @@ function evaluateExpressionType(expression: Node.Expression, context: Context): 
 	if (DEBUG)
 		console.log(`evaluateExpressionType()`, printNode(expression, `    `))
 
-	switch (expression.type) {
-		case NodeType.Function: {
+	switch (expression.kind) {
+		case NodeKind.Function: {
 			const functionContext = scopeContext(context)
 			const parameters = []
 
 			for (const parameter of expression.parameters) {
-				assert(parameter.parameterType, HERE)
+				assert(parameter.type, HERE)
 
-				const type = evaluateExpression(parameter.parameterType)
+				const type = evaluateExpression(parameter.type)
 
 				functionContext.variables[1]!.set(parameter.name, { type, isDefined: true, potentialTypes: new Set() })
 				parameters.push(type)
@@ -109,9 +109,9 @@ function evaluateExpressionType(expression: Node.Expression, context: Context): 
 			return { type: TypeType.Null }
 		}
 
-		case NodeType.VariableDeclaration: {
-			if (expression.bindingType) {
-				const type = evaluateExpression(expression.bindingType)
+		case NodeKind.VariableDeclaration: {
+			if (expression.type) {
+				const type = evaluateExpression(expression.type)
 
 				if (expression.initialValue) {
 					expression.initialValue = maybeWrapExpressionWithCast(expression.initialValue, type, context)
@@ -142,8 +142,8 @@ function evaluateExpressionType(expression: Node.Expression, context: Context): 
 			return { type: TypeType.Null }
 		}
 
-		case NodeType.Return: {
-			expression.expression ||= { type: NodeType.Null }
+		case NodeKind.Return: {
+			expression.expression ||= { kind: NodeKind.Null }
 
 			if (context.expectedReturnType) {
 				expression.expression = maybeWrapExpressionWithCast(
@@ -157,13 +157,13 @@ function evaluateExpressionType(expression: Node.Expression, context: Context): 
 			return { type: TypeType.Null }
 		}
 
-		case NodeType.Integer:
+		case NodeKind.SignedInteger:
 			return { type: TypeType.SignedInteger, bits: expression.bits }
 
-		case NodeType.Float16:
+		case NodeKind.Float16:
 			return { type: TypeType.Float16 }
 
-		case NodeType.Identifier: {
+		case NodeKind.Identifier: {
 			const variable = getVariable(expression.name, context)
 
 			if (variable.type)
@@ -172,7 +172,7 @@ function evaluateExpressionType(expression: Node.Expression, context: Context): 
 			return resolveTypes(variable.potentialTypes)
 		}
 
-		case NodeType.Addition: {
+		case NodeKind.Addition: {
 			if (context.expectedType) {
 				expression.left = maybeWrapExpressionWithCast(expression.left, context.expectedType, context)
 				expression.right = maybeWrapExpressionWithCast(expression.right, context.expectedType, context)
@@ -191,7 +191,7 @@ function evaluateExpressionType(expression: Node.Expression, context: Context): 
 			return resolvedType
 		}
 
-		case NodeType.Assignment: {
+		case NodeKind.Assignment: {
 			const variable = getVariable(expression.binding.name, context)
 
 			if (variable.type) {
@@ -212,7 +212,7 @@ function evaluateExpressionType(expression: Node.Expression, context: Context): 
 			return valueType
 		}
 
-		case NodeType.Call: {
+		case NodeKind.Call: {
 			if (!context.nameToFunctionMap.has(expression.name))
 				throw new Error(`call to undeclared function ${expression.name}`)
 
@@ -235,7 +235,7 @@ function evaluateExpressionType(expression: Node.Expression, context: Context): 
 			return returnType
 		}
 
-		case NodeType.To: {
+		case NodeKind.To: {
 			const leftType = evaluateExpressionType(expression.left, context)
 			const rightType = evaluateExpression(expression.right)
 
@@ -247,38 +247,38 @@ function evaluateExpressionType(expression: Node.Expression, context: Context): 
 			return rightType
 		}
 
-		case NodeType.Null:
+		case NodeKind.Null:
 			return { type: TypeType.Null }
 
 		default:
-			throw new Error(`${HERE} ${NodeType[expression.type]}`)
+			throw new Error(`${HERE} ${NodeKind[expression.type]}`)
 	}
 }
 
 function evaluateExpression(expression: Node): Type {
-	switch (expression.type) {
-		case NodeType.SignedIntegerType:
+	switch (expression.kind) {
+		case NodeKind.SignedIntegerType:
 			return { type: TypeType.SignedInteger, bits: expression.bits }
 
-		case NodeType.UnsignedIntegerType:
+		case NodeKind.UnsignedIntegerType:
 			return { type: TypeType.UnsignedInteger, bits: expression.bits }
 
-		case NodeType.Float16Type:
+		case NodeKind.Float16Type:
 			return { type: TypeType.Float16 }
 
-		case NodeType.Float32Type:
+		case NodeKind.Float32Type:
 			return { type: TypeType.Float32 }
 
-		case NodeType.Float64Type:
+		case NodeKind.Float64Type:
 			return { type: TypeType.Float64 }
 
-		case NodeType.Float128Type:
+		case NodeKind.Float128Type:
 			return { type: TypeType.Float128 }
 
-		case NodeType.Null:
+		case NodeKind.Null:
 			return { type: TypeType.Null }
 
-		case NodeType.Or: {
+		case NodeKind.Or: {
 			const leftEvaluated = evaluateExpression(expression.left)
 			const rightEvaluated = evaluateExpression(expression.right)
 
@@ -301,7 +301,7 @@ function evaluateExpression(expression: Node): Type {
 		}
 
 		default:
-			throw new Error(`${HERE} ${NodeType[expression.type]}`)
+			throw new Error(`${HERE} ${NodeKind[expression.kind]}`)
 	}
 }
 
@@ -439,16 +439,16 @@ function getVariable(name: string, context: Context) {
 function typeToTypeNode(type: Type): Node.Expression {
 	switch (type) {
 		case Type.I32:
-			return { type: NodeType.SignedIntegerType, bits: 32 }
+			return { kind: NodeKind.SignedIntegerType, bits: 32 }
 
 		case Type.I64:
-			return { type: NodeType.SignedIntegerType, bits: 64 }
+			return { kind: NodeKind.SignedIntegerType, bits: 64 }
 
 		case Type.F32:
-			return { type: NodeType.FloatType, bits: 32 }
+			return { kind: NodeKind.FloatType, bits: 32 }
 
 		case Type.F64:
-			return { type: NodeType.FloatType, bits: 64 }
+			return { kind: NodeKind.FloatType, bits: 64 }
 	}
 
 	throw new Error(`${HERE} ${Type[type]}`)
@@ -463,15 +463,15 @@ function maybeWrapExpressionWithCast(expression: Node.Expression, targetType: Ty
 	if (!typeIsCompatibleWith(expressionType, targetType))
 		throw new Error(`${Type[expressionType]} is not compatible with ${Type[targetType]}`)
 
-	if (expression.type == NodeType.Integer) {
+	if (expression.kind == NodeKind.SignedInteger) {
 		if (targetType == Type.I64)
-			return { type: NodeType.Integer, value: expression.value, bits: 64 }
+			return { kind: NodeKind.SignedInteger, value: expression.value, bits: 64 }
 
 		if (targetType == Type.F64)
-			return { type: NodeType.Float, value: Number(expression.value), bits: 64 }
+			return { kind: NodeKind.Float, value: Number(expression.value), bits: 64 }
 	}
 
-	return { type: NodeType.To, left: expression, right: typeToTypeNode(targetType) }
+	return { kind: NodeKind.To, left: expression, right: typeToTypeNode(targetType) }
 }
 
 function printType(type: Type): string {
