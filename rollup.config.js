@@ -25,7 +25,7 @@ const plugins = [
 const sourceDirectory = `src`
 
 const findFilesPromise = findFiles(sourceDirectory)
-const external = []
+const external = [ `fs` ]
 
 if (`dependencies` in packageConfig)
 	external.push(...Object.keys(packageConfig.dependencies))

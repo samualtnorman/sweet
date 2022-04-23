@@ -1,0 +1,4 @@
+{
+	"watch": [ "test.js", "test.sw", "dist" ],
+	"delay": 0.005
+}

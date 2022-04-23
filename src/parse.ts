@@ -6,24 +6,21 @@ import { printToken, Token, TokenKind } from "./tokenise"
 
 const DEBUG = false
 
-const MAX_I32 = 0x7F_FF_FF_FFn
-const MIN_I32 = -0x80_00_00_00n
-
 export enum NodeKind {
 	Identifier,
 	Assignment,
 	Call,
-	Addition,
+	Add,
 	VariableDeclaration,
-	Subtraction,
+	Minus,
 	IfStatement,
 	IfElse,
 	Block,
 	Function,
 	Parameter,
 	Return,
-	SignedInteger,
-	UnsignedInteger,
+	SignedIntegerLiteral,
+	UnsignedIntegerLiteral,
 	ConstantDeclaration,
 	Increment,
 	SignedIntegerType,
@@ -36,38 +33,36 @@ export enum NodeKind {
 	To,
 	As,
 	Or,
-	Float16,
-	Float32,
-	Float64,
-	Float128
+	Float16Literal,
+	Float32Literal,
+	Float64Literal,
+	Float128Literal,
+	Void,
+	True,
+	False,
+	Boolean,
+	ObjectType,
+	ObjectEntry,
+	FunctionType,
+	Any,
+	Times,
+	MinusPrefix,
+	Divide,
+	While,
+	WrappingAdd,
+	Decrement,
+	Equal,
+	NotEqual
 }
 
 export namespace Node {
 	export type Identifier = { kind: NodeKind.Identifier, name: string }
-
-	export type Assignment = {
-		kind: NodeKind.Assignment
-		binding: Identifier
-		value: Expression
-	}
-
-	export type Call = {
-		kind: NodeKind.Call
-		name: string
-		arguments: Expression[]
-	}
-
-	export type Addition = {
-		kind: NodeKind.Addition
-		left: Expression
-		right: Expression
-	}
-
-	export type Subtraction = {
-		kind: NodeKind.Subtraction
-		left: Expression
-		right: Expression
-	}
+	export type Assignment = { kind: NodeKind.Assignment, binding: Identifier, value: Expression }
+	export type Call = { kind: NodeKind.Call, name: string, arguments: Expression[] }
+	export type Add = { kind: NodeKind.Add, left: Expression, right: Expression }
+	export type Times = { kind: NodeKind.Times, left: Expression, right: Expression }
+	export type Minus = { kind: NodeKind.Minus, left: Expression, right: Expression }
+	export type Divide = { kind: NodeKind.Divide, left: Expression, right: Expression }
 
 	export type VariableDeclaration = {
 		kind: NodeKind.VariableDeclaration
@@ -89,22 +84,16 @@ export namespace Node {
 		parameters: Parameter[]
 		returnType: Expression | undefined
 		body: Expression[]
-
 	}
 
-	export type Parameter = {
-		kind: NodeKind.Parameter
-		name: string
-		type: Expression | undefined
-	}
-
+	export type Parameter = { kind: NodeKind.Parameter, binding: Identifier, type: Expression | undefined }
 	export type Return = { kind: NodeKind.Return, expression: Expression | undefined }
-	export type SignedInteger = { kind: NodeKind.SignedInteger, value: bigint, bits: number }
-	export type UnsignedInteger = { kind: NodeKind.UnsignedInteger, value: bigint, bits: number }
-	export type Float16 = { kind: NodeKind.Float16, value: number }
-	export type Float32 = { kind: NodeKind.Float32, value: number }
-	export type Float64 = { kind: NodeKind.Float64, value: number }
-	export type Float128 = { kind: NodeKind.Float128, value: number }
+	export type SignedIntegerLiteral = { kind: NodeKind.SignedIntegerLiteral, value: bigint, bits: number }
+	export type UnsignedIntegerLiteral = { kind: NodeKind.UnsignedIntegerLiteral, value: bigint, bits: number }
+	export type Float16Literal = { kind: NodeKind.Float16Literal, value: number }
+	export type Float32Literal = { kind: NodeKind.Float32Literal, value: number }
+	export type Float64Literal = { kind: NodeKind.Float64Literal, value: number }
+	export type Float128Literal = { kind: NodeKind.Float128Literal, value: number }
 
 	export type ConstantDeclaration = {
 		kind: NodeKind.ConstantDeclaration
@@ -114,6 +103,7 @@ export namespace Node {
 	}
 
 	export type Increment = { kind: NodeKind.Increment, binding: Identifier }
+	export type Decrement = { kind: NodeKind.Decrement, binding: Identifier }
 	export type SignedIntegerType = { kind: NodeKind.SignedIntegerType, bits: number }
 	export type UnsignedIntegerType = { kind: NodeKind.UnsignedIntegerType, bits: number }
 	export type Float16Type = { kind: NodeKind.Float16Type }
@@ -125,36 +115,30 @@ export namespace Node {
 	export type To = { kind: NodeKind.To, left: Expression, right: Expression }
 	export type As = { kind: NodeKind.As, left: Expression, right: Expression }
 	export type Or = { kind: NodeKind.Or, left: Expression, right: Expression }
+	export type Void = { kind: NodeKind.Void, expression: Expression }
+	export type True = { kind: NodeKind.True }
+	export type False = { kind: NodeKind.False }
+	export type Boolean = { kind: NodeKind.Boolean }
+	export type ObjectType = { kind: NodeKind.ObjectType, entries: ObjectEntry[] }
+	export type ObjectEntry = { kind: NodeKind.ObjectEntry, name: string, type: Expression }
+	export type FunctionType = { kind: NodeKind.FunctionType, parameters: Expression[], returnType: Expression }
+	export type Any = { kind: NodeKind.Any }
+	export type MinusPrefix = { kind: NodeKind.MinusPrefix, expression: Expression }
+	export type While = { kind: NodeKind.While, condition: Expression, body: Expression }
+	export type WrappingAdd = { kind: NodeKind.WrappingAdd, left: Expression, right: Expression }
+	export type Equal = { kind: NodeKind.Equal, left: Expression, right: Expression }
+	export type NotEqual = { kind: NodeKind.NotEqual, left: Expression, right: Expression }
 
-	export type Expression = Identifier
-		| Call
-		| Addition
-		| Subtraction
-		| IfElse
-		| SignedInteger
-		| UnsignedInteger
-		| Float16
-		| Float32
-		| Float64
-		| Float128
-		| Assignment
-		| VariableDeclaration
+	export type Literal = Null | True | False | UnsignedIntegerLiteral | SignedIntegerLiteral | Float16Literal
+		| Float32Literal | Float64Literal | Float128Literal
+
+	export type Expression = Literal | Identifier | Call | Add | Minus | IfElse | Assignment
 		// eslint-disable-next-line @typescript-eslint/ban-types
-		| Function
-		| Return
-		| ConstantDeclaration
-		| Increment
-		| SignedIntegerType
-		| UnsignedIntegerType
-		| Float16Type
-		| Float32Type
-		| Float64Type
-		| Float128Type
-		| Null
-		| Block
-		| To
-		| As
-		| Or
+		| VariableDeclaration | Function | Return | ConstantDeclaration | Increment | SignedIntegerType
+		| UnsignedIntegerType | Float16Type | Float32Type | Float64Type | Float128Type | Null | Block | To | As | Or
+		// eslint-disable-next-line @typescript-eslint/ban-types
+		| Void | Boolean | ObjectType | FunctionType | Any | Times | MinusPrefix | Divide | While | WrappingAdd
+		| Decrement | Equal | NotEqual
 }
 
 export type Node = Node.Expression | Node.Parameter
@@ -197,15 +181,15 @@ export class WrongIndentLevelParseError extends ParseError {
 }
 
 export function parse(tokens: Token[]) {
-	return parseExpressions(tokens, 0, { i: 0 })
+	return parseExpressions(tokens, 0, { cursor: tokens[0]?.kind == TokenKind.Newline ? 1 : 0 })
 }
 
 export default parse
 
-export function* parseExpressions(tokens: Token[], indentLevel: number, state: { i: number }): Generator<Node.Expression, void> {
+export function* parseExpressions(tokens: Token[], indentLevel: number, state: { cursor: number }): Generator<Node.Expression, void> {
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	if (DEBUG) {
-		for (const token of tokens.slice(state.i))
+		for (const token of tokens.slice(state.cursor))
 			console.log(`DEBUG parseExpressions()`, printToken(token))
 
 		console.log(`DEBUG parseExpressions() ---`)
@@ -214,13 +198,13 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 	while (true) {
 		yield parseExpression()
 
-		if (state.i >= tokens.length)
+		if (state.cursor >= tokens.length)
 			return
 
 		if (!nextTokenIs(TokenKind.Newline))
-			throw new ParseError(tokens[state.i], [ TokenKind.Newline ])
+			throw new ParseError(tokens[state.cursor], [ TokenKind.Newline ])
 
-		const newline = tokens[state.i]!
+		const newline = tokens[state.cursor]!
 
 		if (newline.data!.length < indentLevel)
 			return
@@ -228,16 +212,16 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		if (newline.data!.length != indentLevel)
 			throw new WrongIndentLevelParseError(newline, indentLevel)
 
-		state.i++
+		state.cursor++
 
-		if (state.i >= tokens.length)
+		if (state.cursor >= tokens.length)
 			return
 	}
 
 	function parseExpression(): Node.Expression {
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 		if (DEBUG) {
-			for (const token of tokens.slice(state.i))
+			for (const token of tokens.slice(state.cursor))
 				console.log(`DEBUG parseExpression()`, printToken(token))
 
 			console.log(`DEBUG parseExpression() ---`)
@@ -246,24 +230,50 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		let expression = parseElement()
 
 		while (true) {
-			if (nextTokenIs(TokenKind.Add)) {
-				state.i++
+			if (nextTokenIs(TokenKind.Divide)) {
+				state.cursor++
 
 				expression = {
-					kind: NodeKind.Addition,
+					kind: NodeKind.Divide,
 					left: expression,
 					right: parseElement()
 				}
-			} else if (nextTokenIs(TokenKind.Minus)) {
-				state.i++
+			} else if (nextTokenIs(TokenKind.Times)) {
+				state.cursor++
 
 				expression = {
-					kind: NodeKind.Subtraction,
+					kind: NodeKind.Times,
+					left: expression,
+					right: parseElement()
+				}
+			} else if (nextTokenIs(TokenKind.Add)) {
+				state.cursor++
+
+				if (nextTokenIs(TokenKind.Modulo)) {
+					state.cursor++
+
+					expression = {
+						kind: NodeKind.WrappingAdd,
+						left: expression,
+						right: parseElement()
+					}
+				} else {
+					expression = {
+						kind: NodeKind.Add,
+						left: expression,
+						right: parseElement()
+					}
+				}
+			} else if (nextTokenIs(TokenKind.Minus)) {
+				state.cursor++
+
+				expression = {
+					kind: NodeKind.Minus,
 					left: expression,
 					right: parseElement()
 				}
 			} else if (nextTokenIs(TokenKind.To)) {
-				state.i++
+				state.cursor++
 
 				expression = {
 					kind: NodeKind.To,
@@ -271,7 +281,7 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 					right: parseElement()
 				}
 			} else if (nextTokenIs(TokenKind.As)) {
-				state.i++
+				state.cursor++
 
 				expression = {
 					kind: NodeKind.As,
@@ -279,7 +289,7 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 					right: parseElement()
 				}
 			} else if (nextTokenIs(TokenKind.Or)) {
-				state.i++
+				state.cursor++
 
 				expression = {
 					kind: NodeKind.Or,
@@ -294,8 +304,54 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 	}
 
 	function parseElement(): Node.Expression {
+		if (nextTokenIs(TokenKind.While)) {
+			state.cursor++
+
+			let condition: Node.Expression
+			let body: Node.Expression
+
+			if (nextTokenIs(TokenKind.OpenBracket)) {
+				condition = parseExpression()
+
+				if (nextTokenIs(TokenKind.Newline)) {
+					expectNewline()
+					body = { kind: NodeKind.Block, body: [ ...parseExpressions(tokens, indentLevel + 1, state) ] }
+				} else
+					body = parseExpression()
+			} else {
+				condition = parseExpression()
+
+				if (nextTokenIs(TokenKind.OpenBracket))
+					body = parseExpression()
+				else {
+					expectNewline()
+					body = { kind: NodeKind.Block, body: [ ...parseExpressions(tokens, indentLevel + 1, state) ] }
+				}
+			}
+
+			return { kind: NodeKind.While, condition, body }
+		}
+
+		if (nextTokenIs(TokenKind.Float64Type)) {
+			state.cursor++
+
+			return { kind: NodeKind.Float64Type }
+		}
+
+		if (nextTokenIs(TokenKind.Null)) {
+			state.cursor++
+
+			return { kind: NodeKind.Null }
+		}
+
+		if (nextTokenIs(TokenKind.Void)) {
+			state.cursor++
+
+			return { kind: NodeKind.Void, expression: parseExpression() }
+		}
+
 		if (nextTokenIs(TokenKind.Return)) {
-			state.i++
+			state.cursor++
 
 			if (nextTokenIs(TokenKind.Newline))
 				return { kind: NodeKind.Return, expression: undefined }
@@ -304,10 +360,10 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		}
 
 		if (nextTokenIs(TokenKind.Function)) {
-			const name = tokens[state.i]!.data!
+			const name = tokens[state.cursor]!.data!
 			const parameters: Node.Parameter[] = []
 
-			state.i++
+			state.cursor++
 
 			if (!nextTokenIs(TokenKind.CloseBracket)) {
 				while (true) {
@@ -317,7 +373,7 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 
 					parameters.push({
 						kind: NodeKind.Parameter,
-						name: identifier.data!,
+						binding: { kind: NodeKind.Identifier, name: identifier.data! },
 						type: parseExpression()
 					})
 
@@ -328,12 +384,12 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 				}
 			}
 
-			state.i++
+			state.cursor++
 
 			let returnType
 
 			if (nextTokenIs(TokenKind.Colon)) {
-				state.i++
+				state.cursor++
 				returnType = parseExpression()
 			} else if (!nextTokenIs(TokenKind.Newline))
 				returnType = parseExpression()
@@ -350,7 +406,7 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		}
 
 		if (nextTokenIs(TokenKind.Let)) {
-			state.i++
+			state.cursor++
 
 			const binding: Node.Identifier = {
 				kind: NodeKind.Identifier,
@@ -360,14 +416,14 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 			let type
 
 			if (nextTokenIs(TokenKind.Colon)) {
-				state.i++
+				state.cursor++
 				type = parseExpression()
 			}
 
 			let initialValue
 
 			if (nextTokenIs(TokenKind.Assign)) {
-				state.i++
+				state.cursor++
 				initialValue = parseExpression()
 			}
 
@@ -380,7 +436,7 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		}
 
 		if (nextTokenIs(TokenKind.Const)) {
-			state.i++
+			state.cursor++
 
 			const binding: Node.Identifier = {
 				kind: NodeKind.Identifier,
@@ -390,7 +446,7 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 			let type
 
 			if (nextTokenIs(TokenKind.Colon)) {
-				state.i++
+				state.cursor++
 				type = parseExpression()
 			}
 
@@ -405,12 +461,12 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		}
 
 		if (nextTokenIs(TokenKind.Identifier)) {
-			const name = tokens[state.i]!.data!
+			const name = tokens[state.cursor]!.data!
 
-			state.i++
+			state.cursor++
 
 			if (nextTokenIs(TokenKind.Assign)) {
-				state.i++
+				state.cursor++
 
 				return {
 					kind: NodeKind.Assignment,
@@ -420,10 +476,19 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 			}
 
 			if (nextTokenIs(TokenKind.Increment)) {
-				state.i++
+				state.cursor++
 
 				return {
 					kind: NodeKind.Increment,
+					binding: { kind: NodeKind.Identifier, name }
+				}
+			}
+
+			if (nextTokenIs(TokenKind.Decrement)) {
+				state.cursor++
+
+				return {
+					kind: NodeKind.Decrement,
 					binding: { kind: NodeKind.Identifier, name }
 				}
 			}
@@ -432,109 +497,109 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		}
 
 		if (nextTokenIs(TokenKind.Number)) {
-			const numberString = tokens[state.i]!.data!
+			const numberString = tokens[state.cursor]!.data!
 
-			state.i++
+			state.cursor++
 
 			if (numberString.includes(`.`)) {
 				if (nextTokenIs(TokenKind.Float16Type)) {
-					state.i++
+					state.cursor++
 
 					return {
-						kind: NodeKind.Float16,
+						kind: NodeKind.Float16Literal,
 						value: Number(numberString)
 					}
 				}
 
 				if (nextTokenIs(TokenKind.Float32Type)) {
-					state.i++
+					state.cursor++
 
 					return {
-						kind: NodeKind.Float32,
+						kind: NodeKind.Float32Literal,
 						value: Number(numberString)
 					}
 				}
 
 				if (nextTokenIs(TokenKind.Float64Type)) {
-					state.i++
+					state.cursor++
 
 					return {
-						kind: NodeKind.Float64,
+						kind: NodeKind.Float64Literal,
 						value: Number(numberString)
 					}
 				}
 
 				if (nextTokenIs(TokenKind.Float128Type)) {
-					state.i++
+					state.cursor++
 
 					return {
-						kind: NodeKind.Float128,
+						kind: NodeKind.Float128Literal,
 						value: Number(numberString)
 					}
 				}
 
 				return {
-					kind: NodeKind.Float64,
+					kind: NodeKind.Float64Literal,
 					value: Number(numberString)
 				}
 			}
 
 			if (nextTokenIs(TokenKind.UnsignedIntegerType)) {
-				const bits = Number(tokens[state.i]!.data)
+				const bits = Number(tokens[state.cursor]!.data)
 
-				state.i++
+				state.cursor++
 
 				return {
-					kind: NodeKind.UnsignedInteger,
+					kind: NodeKind.UnsignedIntegerLiteral,
 					value: BigInt(numberString),
 					bits
 				}
 			}
 
 			if (nextTokenIs(TokenKind.SignedIntegerType)) {
-				const bits = Number(tokens[state.i]!.data)
+				const bits = Number(tokens[state.cursor]!.data)
 
-				state.i++
+				state.cursor++
 
 				return {
-					kind: NodeKind.SignedInteger,
+					kind: NodeKind.SignedIntegerLiteral,
 					value: BigInt(numberString),
 					bits
 				}
 			}
 
 			if (nextTokenIs(TokenKind.Float16Type)) {
-				state.i++
+				state.cursor++
 
 				return {
-					kind: NodeKind.Float16,
+					kind: NodeKind.Float16Literal,
 					value: Number(numberString)
 				}
 			}
 
 			if (nextTokenIs(TokenKind.Float32Type)) {
-				state.i++
+				state.cursor++
 
 				return {
-					kind: NodeKind.Float32,
+					kind: NodeKind.Float32Literal,
 					value: Number(numberString)
 				}
 			}
 
 			if (nextTokenIs(TokenKind.Float64Type)) {
-				state.i++
+				state.cursor++
 
 				return {
-					kind: NodeKind.Float64,
+					kind: NodeKind.Float64Literal,
 					value: Number(numberString)
 				}
 			}
 
 			if (nextTokenIs(TokenKind.Float128Type)) {
-				state.i++
+				state.cursor++
 
 				return {
-					kind: NodeKind.Float128,
+					kind: NodeKind.Float128Literal,
 					value: Number(numberString)
 				}
 			}
@@ -542,17 +607,17 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 			const value = BigInt(numberString)
 
 			return {
-				kind: NodeKind.UnsignedInteger,
+				kind: NodeKind.UnsignedIntegerLiteral,
 				value,
 				bits: getIntegerLength(value)
 			}
 		}
 
 		if (nextTokenIs(TokenKind.Call)) {
-			const name = tokens[state.i]!.data!
+			const name = tokens[state.cursor]!.data!
 			const arguments_ = []
 
-			state.i++
+			state.cursor++
 
 			if (!nextTokenIs(TokenKind.CloseBracket)) {
 				while (true) {
@@ -565,13 +630,13 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 				}
 			}
 
-			state.i++
+			state.cursor++
 
-			return { kind: NodeKind.Call, name, arguments: [] }
+			return { kind: NodeKind.Call, name, arguments: arguments_ }
 		}
 
 		if (nextTokenIs(TokenKind.OpenBracket)) {
-			state.i++
+			state.cursor++
 
 			let element: Node.Expression
 
@@ -588,22 +653,22 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		}
 
 		if (nextTokenIs(TokenKind.If)) {
-			state.i++
+			state.cursor++
 
 			let condition: Node.Expression
 			let truthyBranch: Node.Expression
 
 			if (nextTokenIs(TokenKind.OpenBracket)) {
-				state.i++
+				state.cursor++
 				condition = parseExpression()
 
 				if (nextTokenIs(TokenKind.Newline)) {
-					const newline = tokens[state.i]!
+					const newline = tokens[state.cursor]!
 
 					if (newline.data!.length != indentLevel)
 						throw new WrongIndentLevelParseError(newline, indentLevel)
 
-					state.i++
+					state.cursor++
 				}
 
 				expectToken(TokenKind.CloseBracket)
@@ -625,18 +690,18 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 			}
 
 			if (nextTokenIs(TokenKind.Newline, TokenKind.Else)) {
-				const newline = tokens[state.i]!
+				const newline = tokens[state.cursor]!
 
 				if (newline.data!.length != indentLevel)
 					throw new WrongIndentLevelParseError(newline, indentLevel)
 
-				state.i++
+				state.cursor++
 			}
 
 			let falseyBranch: Node.Expression | undefined
 
 			if (nextTokenIs(TokenKind.Else)) {
-				state.i++
+				state.cursor++
 
 				if (nextTokenIs(TokenKind.Newline)) {
 					expectNewline()
@@ -654,14 +719,14 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		}
 
 		if (nextTokenIs(TokenKind.Minus)) {
-			state.i++
+			state.cursor++
 
-			const childExpression = parseExpression()
+			const expression = parseElement()
 
-			if (childExpression.kind == NodeKind.UnsignedInteger)
-				return { kind: NodeKind.SignedInteger, value: -childExpression.value, bits: childExpression.bits + 1 }
+			if (expression.kind == NodeKind.UnsignedIntegerLiteral)
+				return { kind: NodeKind.SignedIntegerLiteral, value: -expression.value, bits: expression.bits + 1 }
 
-			throw new Error(`${HERE} unhandled node type ${NodeKind[childExpression.kind]}`)
+			return { kind: NodeKind.MinusPrefix, expression }
 		}
 
 		if (nextTokenIs(TokenKind.Float16Type))
@@ -677,22 +742,22 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 			return { kind: NodeKind.Float128Type }
 
 		if (nextTokenIs(TokenKind.UnsignedIntegerType)) {
-			const bits = Number(tokens[state.i]!.data!)
+			const bits = Number(tokens[state.cursor]!.data!)
 
-			state.i++
+			state.cursor++
 
 			return { kind: NodeKind.UnsignedIntegerType, bits }
 		}
 
 		if (nextTokenIs(TokenKind.SignedIntegerType)) {
-			const bits = Number(tokens[state.i]!.data!)
+			const bits = Number(tokens[state.cursor]!.data!)
 
-			state.i++
+			state.cursor++
 
 			return { kind: NodeKind.SignedIntegerType, bits }
 		}
 
-		throw new ParseError(tokens[state.i])
+		throw new ParseError(tokens[state.cursor])
 	}
 
 	function expectNewline(expectedIndentLevel = indentLevel + 1) {
@@ -703,22 +768,22 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 	}
 
 	function expectToken(expectedType: TokenKind) {
-		if (tokens[state.i]?.kind != expectedType)
-			throw new ParseError(tokens[state.i], [ expectedType ])
+		if (tokens[state.cursor]?.kind != expectedType)
+			throw new ParseError(tokens[state.cursor], [ expectedType ])
 
-		const token = tokens[state.i]!
+		const token = tokens[state.cursor]!
 
-		state.i++
+		state.cursor++
 
 		return token
 	}
 
 	function nextTokenIs(...types: TokenKind[]): boolean {
-		if (tokens.length - state.i < types.length)
+		if (tokens.length - state.cursor < types.length)
 			return false
 
 		for (const [ typeIndex, type ] of types.entries()) {
-			if (tokens[state.i + typeIndex]!.kind != type)
+			if (tokens[state.cursor + typeIndex]!.kind != type)
 				return false
 		}
 

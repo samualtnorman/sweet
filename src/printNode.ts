@@ -1,14 +1,5 @@
 import { Node, NodeKind } from "./parse"
 
-export function printNodes(nodes: Node[], indentString = `\t`, indentLevel = 0): string {
-	let o = ``
-
-	for (const node of nodes)
-		o += `${indentString.repeat(indentLevel)}${printNode(node, indentString, indentLevel)}\n`
-
-	return o
-}
-
 export function printNode(node: Node, indentString = `\t`, indentLevel = 0): string {
 	const { kind, ...nodeProperties } = node
 	let o = `${NodeKind[kind]}\n`
@@ -32,3 +23,12 @@ export function printNode(node: Node, indentString = `\t`, indentLevel = 0): str
 }
 
 export default printNode
+
+export function printNodes(nodes: Node[], indentString = `\t`, indentLevel = 0): string {
+	let o = ``
+
+	for (const node of nodes)
+		o += `${indentString.repeat(indentLevel)}${printNode(node, indentString, indentLevel)}\n`
+
+	return o
+}

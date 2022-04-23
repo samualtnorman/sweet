@@ -1,0 +1,53 @@
+import { Type, TypeKind } from "."
+
+export function printType(type: Type): string {
+	switch (type.kind) {
+		case TypeKind.Null:
+			return `null`
+
+		case TypeKind.True:
+			return `true`
+
+		case TypeKind.False:
+			return `false`
+
+		case TypeKind.UnsignedInteger:
+			return type.bits ? `u${type.bits}` : `u`
+
+		case TypeKind.SignedInteger:
+			return type.bits ? `i${type.bits}` : `i`
+
+		case TypeKind.Float16:
+			return `f16`
+
+		case TypeKind.Float32:
+			return `f32`
+
+		case TypeKind.Float64:
+			return `f64`
+
+		case TypeKind.Float128:
+			return `f128`
+
+		case TypeKind.Union:
+			return type.members.map(
+				type => type.kind == TypeKind.Function ? `(${printType(type)})` : printType(type)
+			).join(` | `)
+
+		case TypeKind.Object:
+			return `{ ${[ ...type.properties ].map(([ name, type ]) => `${name}: ${printType(type)}`).join(`, `)} }`
+
+		case TypeKind.Function: {
+			const printedReturnType = type.returnType.kind == TypeKind.Union || type.returnType.kind == TypeKind.Function
+				? `(${printType(type.returnType)})`
+				: printType(type.returnType)
+
+			return `(${[ ...type.parameters ].map(type => printType(type)).join(`, `)}): ${printedReturnType}`
+		}
+
+		case TypeKind.Any:
+			return `any`
+	}
+}
+
+export default printType

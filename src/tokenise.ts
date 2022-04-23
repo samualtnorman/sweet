@@ -1,4 +1,4 @@
-const DEBUG = false
+const DEBUG = true
 
 export enum TokenKind {
 	Identifier,
@@ -62,7 +62,11 @@ export enum TokenKind {
 	Float64Type,
 	Float128Type,
 	Null,
-	Void
+	Void,
+	True,
+	False,
+	Boolean,
+	While
 }
 
 export type Token = { kind: TokenKind, data: string | undefined, index: number, line: number, column: number }
@@ -74,9 +78,9 @@ export function* tokenise(code: string): Generator<Token, void> {
 	let match
 
 	while (index < code.length) {
-		if ((match = /^(\r?\n+)(\t*)/.exec(code.slice(index)))) {
+		if ((match = /^((?:(?:\/\/.*)?\r?\n)+)(\t*)/.exec(code.slice(index)))) {
 			yield createToken(TokenKind.Newline, match[2])
-			line += match[1]!.length
+			line += match[1]!.split(``).filter(character => character == `\n`).length
 			column = (match[2]!.length * 4) + 1
 			index += match[0]!.length
 
@@ -84,7 +88,15 @@ export function* tokenise(code: string): Generator<Token, void> {
 				throw new Error(`lines must not begin with whitespace`)
 		} else {
 			if (!(match = /^ +/.exec(code.slice(index)))) {
-				if ((match = /^void(?![$\w])/.exec(code.slice(index))))
+				if ((match = /^while(?![$\w])/.exec(code.slice(index))))
+					yield createToken(TokenKind.While)
+				else if ((match = /^boolean(?![$\w])/.exec(code.slice(index))))
+					yield createToken(TokenKind.Boolean)
+				else if ((match = /^false(?![$\w])/.exec(code.slice(index))))
+					yield createToken(TokenKind.False)
+				else if ((match = /^true(?![$\w])/.exec(code.slice(index))))
+					yield createToken(TokenKind.True)
+				else if ((match = /^void(?![$\w])/.exec(code.slice(index))))
 					yield createToken(TokenKind.Void)
 				else if ((match = /^null(?![$\w])/.exec(code.slice(index))))
 					yield createToken(TokenKind.Null)

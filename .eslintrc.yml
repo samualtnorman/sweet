@@ -340,12 +340,12 @@ rules:
       next: multiline-expression
 
     - blankLine: any
-      prev: export
-      next: export
-
-    - blankLine: any
       prev: type
       next: type
+
+    - blankLine: any
+      prev: export
+      next: export
 
   rest-spread-spacing:
     - warn
@@ -380,7 +380,7 @@ rules:
       disallowTypeAnnotations: false
 
   "@typescript-eslint/no-confusing-void-expression":
-    - warn
+    - error
     - ignoreArrowShorthand: true
 
   "@typescript-eslint/no-empty-function":
