@@ -1,5 +1,5 @@
 import { assert } from "@samual/lib"
-import { getIntegerLength } from "./generateWASMModule/shared"
+import { getIntegerLength } from "./shared"
 import { printToken, Token, TokenKind } from "./tokenise"
 
 // TODO complain when number literal too big or small for bits
@@ -55,6 +55,7 @@ export enum NodeKind {
 	NotEqual
 }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Node {
 	export type Identifier = { kind: NodeKind.Identifier, name: string }
 	export type Assignment = { kind: NodeKind.Assignment, binding: Identifier, value: Expression }

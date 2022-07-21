@@ -17,6 +17,7 @@ plugins:
   - unicorn
   - eslint-comments
   - array-func
+  - regexp
 
 extends:
   - eslint:recommended
@@ -24,6 +25,7 @@ extends:
   - plugin:unicorn/recommended
   - plugin:eslint-comments/recommended
   - plugin:array-func/recommended
+  - plugin:regexp/recommended
 
 ignorePatterns:
   - node_modules
@@ -67,6 +69,7 @@ rules:
   operator-assignment: warn
   prefer-arrow-callback: warn
   prefer-exponentiation-operator: warn
+  prefer-named-capture-group: warn
   prefer-numeric-literals: warn
   # prefer-object-has-own: warn
   prefer-object-spread: warn
@@ -87,7 +90,7 @@ rules:
   "@typescript-eslint/func-call-spacing": warn
   key-spacing: warn
   "@typescript-eslint/keyword-spacing": warn
-  # linebreak-style: warn
+  linebreak-style: warn
   new-parens: warn
   no-multi-spaces: warn
   no-whitespace-before-property: warn
@@ -138,7 +141,7 @@ rules:
   unicorn/no-await-expression-member: off
   unicorn/no-null: warn
   unicorn/import-index: warn
-  # unicorn/no-unsafe-regex: warn
+  unicorn/no-unsafe-regex: warn
   unicorn/no-unused-properties: warn
   # unicorn/prefer-string-replace-all: warn
   # unicorn/prefer-top-level-await: warn
@@ -151,6 +154,10 @@ rules:
   unicorn/no-lonely-if: warn
   eslint-comments/disable-enable-pair: off
   "@typescript-eslint/no-unnecessary-condition": off
+  unicorn/no-useless-undefined: off
+  no-inner-declarations: off
+  unicorn/better-regex: off
+  unicorn/prefer-top-level-await: off
 
   no-constant-condition:
     - warn
@@ -186,7 +193,6 @@ rules:
 
   func-style:
     - warn
-    - declaration
 
   grouped-accessor-pairs:
     - warn
@@ -263,7 +269,7 @@ rules:
       prev: "*"
       next: "*"
 
-    - blankLine: never
+    - blankLine: any
       prev: import
       next: import
 
@@ -340,12 +346,12 @@ rules:
       next: multiline-expression
 
     - blankLine: any
-      prev: type
-      next: type
-
-    - blankLine: any
       prev: export
       next: export
+
+    - blankLine: any
+      prev: type
+      next: type
 
   rest-spread-spacing:
     - warn
@@ -380,7 +386,7 @@ rules:
       disallowTypeAnnotations: false
 
   "@typescript-eslint/no-confusing-void-expression":
-    - error
+    - warn
     - ignoreArrowShorthand: true
 
   "@typescript-eslint/no-empty-function":
@@ -392,10 +398,6 @@ rules:
     - warn
     - ignoreStringArrays: true
 
-  unicorn/better-regex:
-    - warn
-    - sortCharacterClasses: false
-
   unicorn/prevent-abbreviations:
     - warn
     - checkFilenames: false
@@ -404,4 +406,8 @@ rules:
     - warn
     - allowSingleLine: true
 
-  "@typescript-eslint/no-namespace": off
+  unicorn/prefer-ternary:
+    - warn
+
+  regexp/prefer-d:
+    - warn

@@ -33,11 +33,11 @@ if (`dependencies` in packageConfig)
 /** @type {(command: Record<string, unknown>) => Promise<RollupOptions>} */
 export default async ({ w }) => {
 	if (!w) {
-		plugins.push(terser({
-			ecma: 2020,
-			keep_classnames: true,
-			keep_fnames: true
-		}))
+		// plugins.push(terser({
+		// 	ecma: 2020,
+		// 	keep_classnames: true,
+		// 	keep_fnames: true
+		// }))
 	} else if (`devDependencies` in packageConfig)
 		external.push(...Object.keys(packageConfig.devDependencies))
 

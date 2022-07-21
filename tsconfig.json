@@ -16,7 +16,7 @@
 		"target": "ESNext",
 		"skipLibCheck": true,
 		"module": "ESNext",
-		"lib": [ "ESNext" ]
+		"lib": [ "ESNext", "DOM" ]
 	},
 	"include": [ "*", "scripts/*", "test/*" ]
 }

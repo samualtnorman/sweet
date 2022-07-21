@@ -1,22 +1,13 @@
-// declare function getRandomBoolean() boolean
+function generateFibonacciNumber(n: i32) i32
+	let a: i32 = 0
+	let b: i32 = 1
 
-function foo()
-	return bar()
+	while n
+		let sum: i32 = a +% b
 
-function bar()
-	return foo()
+		a = b
+		b = sum
 
-// function generateFibonacciNumber(n: u8)
-// 	let a: i32 = 0
-// 	let b: i32 = 0
-//
-// 	while n
-// 		let sum: i32 = a +% b
-//
-// 		a = b
-// 		b = sum
-//
-// 		n--
-//
-// 	return b
-//
+		n--
+
+	return a

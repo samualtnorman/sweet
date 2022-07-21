@@ -1,15 +1,28 @@
-/* eslint-disable unicorn/import-index */
-
 import { readFile } from "fs/promises"
-import generateSourceCode from "./dist/generateSourceCode.js"
-import { parse, passExpressions, tokenise } from "./dist/index.js"
+import generateWASMModule from "./dist/generateWASMModule.js"
+import { parse, tokenise } from "./dist/index.js"
 import { printNodes } from "./dist/printNode.js"
 
-const source = await readFile(`test.sw`, { encoding: `utf-8` })
-const nodes = [ ...parse([ ...tokenise(source) ]) ]
 
-console.log(`\nast:`)
-console.log(printNodes(nodes, `    `))
-passExpressions(nodes)
-console.log(`\nafter pass:`)
-console.log(generateSourceCode(nodes, `    `))
+try {
+	const sourceCode = await readFile(`test.sw`, { encoding: `utf-8` })
+
+	console.log(sourceCode)
+
+	const tokens = [ ...tokenise(sourceCode) ]
+	const expressions = [ ...parse(tokens) ]
+
+	// console.log(printNodes(expressions, `    `))
+
+	const binaryenModule = generateWASMModule(expressions)
+
+	console.log(binaryenModule.emitText())
+
+	const module = new WebAssembly.Module(binaryenModule.emitBinary())
+
+	const { generateFibonacciNumber } = /** @type {*} */ (new WebAssembly.Instance(module).exports)
+
+	console.log(generateFibonacciNumber(7))
+} catch (error) {
+	console.error(error)
+}
