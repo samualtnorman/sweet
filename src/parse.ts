@@ -52,7 +52,9 @@ export enum NodeKind {
 	WrappingAdd,
 	Decrement,
 	Equal,
-	NotEqual
+	NotEqual,
+	DeclaredFunction,
+	WrappingTimes
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -62,6 +64,7 @@ export namespace Node {
 	export type Call = { kind: NodeKind.Call, name: string, arguments: Expression[] }
 	export type Add = { kind: NodeKind.Add, left: Expression, right: Expression }
 	export type Times = { kind: NodeKind.Times, left: Expression, right: Expression }
+	export type WrappingTimes = { kind: NodeKind.WrappingTimes, left: Expression, right: Expression }
 	export type Minus = { kind: NodeKind.Minus, left: Expression, right: Expression }
 	export type Divide = { kind: NodeKind.Divide, left: Expression, right: Expression }
 
@@ -130,6 +133,13 @@ export namespace Node {
 	export type Equal = { kind: NodeKind.Equal, left: Expression, right: Expression }
 	export type NotEqual = { kind: NodeKind.NotEqual, left: Expression, right: Expression }
 
+	export type FunctionDeclaration = {
+		kind: NodeKind.DeclaredFunction
+		name: string
+		parameters: Parameter[]
+		returnType: Expression | undefined
+	}
+
 	export type Literal = Null | True | False | UnsignedIntegerLiteral | SignedIntegerLiteral | Float16Literal
 		| Float32Literal | Float64Literal | Float128Literal
 
@@ -139,7 +149,7 @@ export namespace Node {
 		| UnsignedIntegerType | Float16Type | Float32Type | Float64Type | Float128Type | Null | Block | To | As | Or
 		// eslint-disable-next-line @typescript-eslint/ban-types
 		| Void | Boolean | ObjectType | FunctionType | Any | Times | MinusPrefix | Divide | While | WrappingAdd
-		| Decrement | Equal | NotEqual
+		| Decrement | Equal | NotEqual | FunctionDeclaration | WrappingTimes
 }
 
 export type Node = Node.Expression | Node.Parameter
@@ -167,6 +177,9 @@ export class ParseError extends Error {
 	}
 }
 
+const getExpectedTypeNames = (expectedTypes: TokenKind[]) =>
+	expectedTypes.map(expectedType => TokenKind[expectedType]).join(`, `)
+
 export class WrongIndentLevelParseError extends ParseError {
 	constructor(
 		public override readonly token: Token,
@@ -181,13 +194,12 @@ export class WrongIndentLevelParseError extends ParseError {
 	}
 }
 
-export function parse(tokens: Token[]) {
-	return parseExpressions(tokens, 0, { cursor: tokens[0]?.kind == TokenKind.Newline ? 1 : 0 })
-}
+export const parse = (tokens: Token[]) =>
+	parseExpressions(tokens, 0, { cursor: tokens[0]?.kind == TokenKind.Newline ? 1 : 0 })
 
 export default parse
 
-export function* parseExpressions(tokens: Token[], indentLevel: number, state: { cursor: number }): Generator<Node.Expression, void> {
+export const parseExpressions = function* (tokens: Token[], indentLevel: number, state: { cursor: number }): Generator<Node.Expression, void> {
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	if (DEBUG) {
 		for (const token of tokens.slice(state.cursor))
@@ -196,30 +208,7 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		console.log(`DEBUG parseExpressions() ---`)
 	}
 
-	while (true) {
-		yield parseExpression()
-
-		if (state.cursor >= tokens.length)
-			return
-
-		if (!nextTokenIs(TokenKind.Newline))
-			throw new ParseError(tokens[state.cursor], [ TokenKind.Newline ])
-
-		const newline = tokens[state.cursor]!
-
-		if (newline.data!.length < indentLevel)
-			return
-
-		if (newline.data!.length != indentLevel)
-			throw new WrongIndentLevelParseError(newline, indentLevel)
-
-		state.cursor++
-
-		if (state.cursor >= tokens.length)
-			return
-	}
-
-	function parseExpression(): Node.Expression {
+	const parseExpression = (): Node.Expression => {
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 		if (DEBUG) {
 			for (const token of tokens.slice(state.cursor))
@@ -244,6 +233,14 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 
 				expression = {
 					kind: NodeKind.Times,
+					left: expression,
+					right: parseElement()
+				}
+			} else if (nextTokenIs(TokenKind.WrappingTimes)) {
+				state.cursor++
+
+				expression = {
+					kind: NodeKind.WrappingTimes,
 					left: expression,
 					right: parseElement()
 				}
@@ -304,7 +301,7 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		return expression
 	}
 
-	function parseElement(): Node.Expression {
+	const parseElement = (): Node.Expression => {
 		if (nextTokenIs(TokenKind.While)) {
 			state.cursor++
 
@@ -758,17 +755,55 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 			return { kind: NodeKind.SignedIntegerType, bits }
 		}
 
+		if (nextTokenIs(TokenKind.DeclaredFunction)) {
+			const name = tokens[state.cursor]!.data!
+			const parameters: Node.Parameter[] = []
+
+			state.cursor++
+
+			if (!nextTokenIs(TokenKind.CloseBracket)) {
+				while (true) {
+					const identifier = expectToken(TokenKind.Identifier)
+
+					expectToken(TokenKind.Colon)
+
+					parameters.push({
+						kind: NodeKind.Parameter,
+						binding: { kind: NodeKind.Identifier, name: identifier.data! },
+						type: parseExpression()
+					})
+
+					if (nextTokenIs(TokenKind.CloseBracket))
+						break
+
+					expectToken(TokenKind.Comma)
+				}
+			}
+
+			state.cursor++
+
+			let returnType
+
+			if (nextTokenIs(TokenKind.Colon)) {
+				state.cursor++
+				returnType = parseExpression()
+			} else if (!nextTokenIs(TokenKind.Newline))
+				returnType = parseExpression()
+
+			return { kind: NodeKind.DeclaredFunction, name, parameters, returnType }
+		}
+
 		throw new ParseError(tokens[state.cursor])
 	}
 
-	function expectNewline(expectedIndentLevel = indentLevel + 1) {
+	const expectNewline = (expectedIndentLevel = indentLevel + 1) => {
 		const newline = expectToken(TokenKind.Newline)
 
 		if (newline.data!.length != expectedIndentLevel)
 			throw new WrongIndentLevelParseError(newline, expectedIndentLevel)
 	}
 
-	function expectToken(expectedType: TokenKind) {
+	const expectToken = (expectedType: TokenKind) => {
 		if (tokens[state.cursor]?.kind != expectedType)
 			throw new ParseError(tokens[state.cursor], [ expectedType ])
 
@@ -779,7 +814,7 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 		return token
 	}
 
-	function nextTokenIs(...types: TokenKind[]): boolean {
+	const nextTokenIs = (...types: TokenKind[]): boolean => {
 		if (tokens.length - state.cursor < types.length)
 			return false
 
@@ -790,8 +825,27 @@ export function* parseExpressions(tokens: Token[], indentLevel: number, state: {
 
 		return true
 	}
-}
 
-function getExpectedTypeNames(expectedTypes: TokenKind[]) {
-	return expectedTypes.map(expectedType => TokenKind[expectedType]).join(`, `)
+	while (true) {
+		yield parseExpression()
+
+		if (state.cursor >= tokens.length)
+			return
+
+		if (!nextTokenIs(TokenKind.Newline))
+			throw new ParseError(tokens[state.cursor], [ TokenKind.Newline ])
+
+		const newline = tokens[state.cursor]!
+
+		if (newline.data!.length < indentLevel)
+			return
+
+		if (newline.data!.length != indentLevel)
+			throw new WrongIndentLevelParseError(newline, indentLevel)
+
+		state.cursor++
+
+		if (state.cursor >= tokens.length)
+			return
+	}
 }

@@ -4,11 +4,11 @@
 	"description": "",
 	"scripts": {
 		"build": "rollup --config",
-		"dev-build": "rollup --config --watch",
-		"dev-run": "nodemon test.js",
-		"dev-gen-types": "tsc --project src --declaration true --emitDeclarationOnly true --noEmit false --outDir dist --watch",
-		"lint": "eslint .; tsc",
 		"gen-types": "tsc --project src --declaration true --emitDeclarationOnly true --noEmit false --outDir dist",
+		"dev-build": "rollup --config --watch",
+		"dev-gen-types": "tsc --project src --declaration true --emitDeclarationOnly true --noEmit false --outDir dist --watch",
+		"dev-run": "nodemon test.js",
+		"lint": "eslint .; tsc",
 		"package": "rm -rf dist && rollup --config && npm run gen-types && node scripts/build-package-json && cp LICENSE package-lock.json README.md index.cjs dist"
 	},
 	"repository": {

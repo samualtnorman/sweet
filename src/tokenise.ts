@@ -1,3 +1,4 @@
+/* eslint-disable prefer-named-capture-group */
 const DEBUG = false
 
 export enum TokenKind {
@@ -66,16 +67,28 @@ export enum TokenKind {
 	True,
 	False,
 	Boolean,
-	While
+	While,
+	DeclaredFunction,
+	WrappingTimes
 }
 
 export type Token = { kind: TokenKind, data: string | undefined, index: number, line: number, column: number }
 
-export function* tokenise(code: string): Generator<Token, void> {
+export const tokenise = function* (code: string): Generator<Token, void> {
 	let index = 0
 	let line = 1
 	let column = 1
 	let match
+
+	const createToken = (kind: TokenKind, data?: string): Token => {
+		const token: Token = { kind, data, index, line, column }
+
+		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+		if (DEBUG)
+			console.log(`DEBUG tokenise()`, printToken(token))
+
+		return token
+	}
 
 	while (index < code.length) {
 		if ((match = /^((?:(?:\/\/.*)?\r?\n)+)(\t*)/.exec(code.slice(index)))) {
@@ -141,9 +154,11 @@ export function* tokenise(code: string): Generator<Token, void> {
 				else if ((match = /^import *"(\\"|[^"]+)"/.exec(code.slice(index))))
 					yield createToken(TokenKind.Import, match[1]!)
 				else if ((match = /^break(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Break, match[1]!)
+					yield createToken(TokenKind.Break)
 				else if ((match = /^continue(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Continue, match[1]!)
+					yield createToken(TokenKind.Continue)
+				else if ((match = /^declare +function *([a-zA-Z_$][$\w]*) *\(/.exec(code.slice(index))))
+					yield createToken(TokenKind.DeclaredFunction, match[1])
 				else if ((match = /^\d(?:_?\d)*(?:\.\d(?:_?\d)*)?/.exec(code.slice(index))))
 					yield createToken(TokenKind.Number, match[0]!)
 				else if ((match = /^0[xX][\da-fA-F](?:_?[\da-fA-F])*/.exec(code.slice(index))))
@@ -162,13 +177,13 @@ export function* tokenise(code: string): Generator<Token, void> {
 					yield createToken(TokenKind.OpenBracket)
 				else if ((match = /^\)/.exec(code.slice(index))))
 					yield createToken(TokenKind.CloseBracket)
-				else if ((match = /^{/.exec(code.slice(index))))
+				else if ((match = /^\{/.exec(code.slice(index))))
 					yield createToken(TokenKind.OpenSquiglyBracket)
-				else if ((match = /^}/.exec(code.slice(index))))
+				else if ((match = /^\}/.exec(code.slice(index))))
 					yield createToken(TokenKind.CloseSquiglyBracket)
 				else if ((match = /^\[/.exec(code.slice(index))))
 					yield createToken(TokenKind.OpenSquareBracket)
-				else if ((match = /^]/.exec(code.slice(index))))
+				else if ((match = /^\]/.exec(code.slice(index))))
 					yield createToken(TokenKind.CloseSquareBracket)
 				else if ((match = /^,/.exec(code.slice(index))))
 					yield createToken(TokenKind.Comma)
@@ -186,6 +201,8 @@ export function* tokenise(code: string): Generator<Token, void> {
 					yield createToken(TokenKind.Divide)
 				else if ((match = /^\*\*/.exec(code.slice(index))))
 					yield createToken(TokenKind.Power)
+				else if ((match = /^\*%/.exec(code.slice(index))))
+					yield createToken(TokenKind.WrappingTimes)
 				else if ((match = /^\*/.exec(code.slice(index))))
 					yield createToken(TokenKind.Times)
 				else if ((match = /^==/.exec(code.slice(index))))
@@ -231,21 +248,11 @@ export function* tokenise(code: string): Generator<Token, void> {
 	}
 
 	return undefined
-
-	function createToken(kind: TokenKind, data?: string): Token {
-		const token: Token = { kind, data, index, line, column }
-
-		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-		if (DEBUG)
-			console.log(`DEBUG tokenise()`, printToken(token))
-
-		return token
-	}
 }
 
 export default tokenise
 
-export function printToken(token: Token) {
+export const printToken = (token: Token) => {
 	if (token.data == undefined)
 		return TokenKind[token.kind]
 

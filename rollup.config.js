@@ -24,6 +24,32 @@ const plugins = [
 
 const sourceDirectory = `src`
 
+/**
+ * @param {string} path the directory to start recursively finding files in
+ * @param {string[] | ((name: string) => boolean)} filter either a blacklist or a filter function that returns false to ignore file name
+ * @param {string[]} paths
+ * @returns promise that resolves to array of found files
+ */
+const findFiles = async (path, filter = [], paths = []) => {
+	const filterFunction = Array.isArray(filter)
+		? name => !filter.includes(name)
+		: filter
+
+	await Promise.all((await readDirectory(path, { withFileTypes: true })).map(async dirent => {
+		if (!filterFunction(dirent.name))
+			return
+
+		const direntPath = `${path}/${dirent.name}`
+
+		if (dirent.isDirectory())
+			await findFiles(direntPath, filterFunction, paths)
+		else if (dirent.isFile())
+			paths.push(direntPath)
+	}))
+
+	return paths
+}
+
 const findFilesPromise = findFiles(sourceDirectory)
 const external = [ `fs` ]
 
@@ -56,30 +82,4 @@ export default async ({ w }) => {
 		preserveEntrySignatures: `allow-extension`,
 		treeshake: { moduleSideEffects: false }
 	}
-}
-
-/**
- * @param {string} path the directory to start recursively finding files in
- * @param {string[] | ((name: string) => boolean)} filter either a blacklist or a filter function that returns false to ignore file name
- * @param {string[]} paths
- * @returns promise that resolves to array of found files
- */
-async function findFiles(path, filter = [], paths = []) {
-	const filterFunction = Array.isArray(filter)
-		? name => !filter.includes(name)
-		: filter
-
-	await Promise.all((await readDirectory(path, { withFileTypes: true })).map(async dirent => {
-		if (!filterFunction(dirent.name))
-			return
-
-		const direntPath = `${path}/${dirent.name}`
-
-		if (dirent.isDirectory())
-			await findFiles(direntPath, filterFunction, paths)
-		else if (dirent.isFile())
-			paths.push(direntPath)
-	}))
-
-	return paths
 }

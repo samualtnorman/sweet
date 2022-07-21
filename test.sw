@@ -1,13 +1,6 @@
-function generateFibonacciNumber(n: i32) i32
-	let a: i32 = 0
-	let b: i32 = 1
+declare function logI32(value: i32) null
 
-	while n
-		let sum: i32 = a +% b
+let count: i32 = 0
 
-		a = b
-		b = sum
-
-		n--
-
-	return a
+function increment() null
+	count++
