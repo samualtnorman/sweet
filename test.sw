@@ -1,6 +1,7 @@
-declare function logI32(value: i32) null
+declare module "console" as {
+	log(value: any) null
+}
 
-let count: i32 = 0
+import "console" as { log }
 
-function increment() null
-	count++
+log(42)

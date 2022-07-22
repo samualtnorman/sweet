@@ -3,6 +3,8 @@
 ## Notes
 
 ### Operators
+`<<%=`, `++%`, `--%`, `<<%`, `**%`, `+%=`, `-%=`, `??=`, `<<=`, `>>=`, `&&=`, `||=`, `**=`, `&=`, `|=`, `:=`, `^=`, `+=`, `-=`, `*=`, `!=`, `%=`, `~=`, `<=`, `>=`, `/=`, `<<`, `>>`, `+%`, `-%`, `++`, `--`, `**`, `*%`, `==`, `&&`, `||`, `?.`, `>`, `<`, `.`, `,`, `^`, `+`, `-`, `/`, `*`, `%`, `!`, `&`, `|`, `~`, `=`, `?`
+
 
 #### `+` (plus)
 
@@ -17,7 +19,6 @@ e.g. `(a as u4) + (b as u8)` results in a `u9` type
 like sweet's `+` operator, the `-` operator also prevents overflow
 even if given 2 unsigned integer types, the result is always a signed integer type
 
-u u
-i i
-u i
-i u
+---
+
+`->`, `=>`, `:`, `(`, `)`, `{`, `}`, `[`, `]`, `,`

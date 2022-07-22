@@ -42,7 +42,7 @@ export enum TokenKind {
 	LogicalNot,
 	NullishCoalesce,
 	BitwiseAnd,
-	Or,
+	BitwiseOr,
 	BitwiseNot,
 	Assign,
 	OptionalChain,
@@ -68,11 +68,105 @@ export enum TokenKind {
 	False,
 	Boolean,
 	While,
-	DeclaredFunction,
-	WrappingTimes
+	DeclareFunction,
+	WrappingTimes,
+	DeclareModule,
+	Module,
+	Declare,
+	Dot,
+	Arrow,
+	BiggerThan,
+	SmallerThan,
+	For,
+	Tag,
+	Enum,
+	ThickArrow,
+	Private,
+	Internal
 }
 
 export type Token = { kind: TokenKind, data: string | undefined, index: number, line: number, column: number }
+
+const tokenRegexes: { regex: RegExp, tokenKind: TokenKind }[] = [
+	{ regex: /^while(?![$\w])/, tokenKind: TokenKind.While },
+	{ regex: /^boolean(?![$\w])/, tokenKind: TokenKind.Boolean },
+	{ regex: /^false(?![$\w])/, tokenKind: TokenKind.False },
+	{ regex: /^true(?![$\w])/, tokenKind: TokenKind.True },
+	{ regex: /^void(?![$\w])/, tokenKind: TokenKind.Void },
+	{ regex: /^null(?![$\w])/, tokenKind: TokenKind.Null },
+	{ regex: /^f16(?![$\w])/, tokenKind: TokenKind.Float16Type },
+	{ regex: /^f32(?![$\w])/, tokenKind: TokenKind.Float32Type },
+	{ regex: /^f64(?![$\w])/, tokenKind: TokenKind.Float64Type },
+	{ regex: /^f128(?![$\w])/, tokenKind: TokenKind.Float128Type },
+	{ regex: /^function(?![$\w])/, tokenKind: TokenKind.Function },
+	{ regex: /^as(?![$\w])/, tokenKind: TokenKind.As },
+	{ regex: /^to(?![$\w])/, tokenKind: TokenKind.To },
+	{ regex: /^type(?![$\w])/, tokenKind: TokenKind.TypeAlias },
+	{ regex: /^let(?![$\w])/, tokenKind: TokenKind.Let },
+	{ regex: /^const(?![$\w])/, tokenKind: TokenKind.Const },
+	{ regex: /^return(?![$\w])/, tokenKind: TokenKind.Return },
+	{ regex: /^if(?![$\w])/, tokenKind: TokenKind.If },
+	{ regex: /^until(?![$\w])/, tokenKind: TokenKind.Until },
+	{ regex: /^do(?![$\w])/, tokenKind: TokenKind.Do },
+	{ regex: /^with(?![$\w])/, tokenKind: TokenKind.With },
+	{ regex: /^else(?![$\w])/, tokenKind: TokenKind.Else },
+	{ regex: /^loop(?![$\w])/, tokenKind: TokenKind.Loop },
+	{ regex: /^import(?![$\w])/, tokenKind: TokenKind.Import },
+	{ regex: /^break(?![$\w])/, tokenKind: TokenKind.Break },
+	{ regex: /^continue(?![$\w])/, tokenKind: TokenKind.Continue },
+	{ regex: /^declare(?![$\w])/, tokenKind: TokenKind.Declare },
+	{ regex: /^function(?![$\w])/, tokenKind: TokenKind.Function },
+	{ regex: /^module(?![$\w])/, tokenKind: TokenKind.Module },
+	{ regex: /^for(?![$\w])/, tokenKind: TokenKind.For },
+	{ regex: /^tag(?![$\w])/, tokenKind: TokenKind.Tag },
+	{ regex: /^enum(?![$\w])/, tokenKind: TokenKind.Enum },
+	{ regex: /^private(?![$\w])/, tokenKind: TokenKind.Private },
+	{ regex: /^internal(?![$\w])/, tokenKind: TokenKind.Internal },
+	{ regex: /^>/, tokenKind: TokenKind.BiggerThan },
+	{ regex: /^</, tokenKind: TokenKind.SmallerThan },
+	{ regex: /^\./, tokenKind: TokenKind.Dot },
+	{ regex: /^->/, tokenKind: TokenKind.Arrow },
+	{ regex: /^=>/, tokenKind: TokenKind.ThickArrow },
+	{ regex: /^:/, tokenKind: TokenKind.Colon },
+	{ regex: /^\(/, tokenKind: TokenKind.OpenBracket },
+	{ regex: /^\)/, tokenKind: TokenKind.CloseBracket },
+	{ regex: /^\{/, tokenKind: TokenKind.OpenSquiglyBracket },
+	{ regex: /^\}/, tokenKind: TokenKind.CloseSquiglyBracket },
+	{ regex: /^\[/, tokenKind: TokenKind.OpenSquareBracket },
+	{ regex: /^\]/, tokenKind: TokenKind.CloseSquareBracket },
+	{ regex: /^,/, tokenKind: TokenKind.Comma },
+	{ regex: /^\^/, tokenKind: TokenKind.Xor },
+	{ regex: /^\+\+/, tokenKind: TokenKind.Increment },
+	{ regex: /^--/, tokenKind: TokenKind.Decrement },
+	{ regex: /^\+/, tokenKind: TokenKind.Add },
+	{ regex: /^-/, tokenKind: TokenKind.Minus },
+	{ regex: /^\//, tokenKind: TokenKind.Divide },
+	{ regex: /^\*\*/, tokenKind: TokenKind.Power },
+	{ regex: /^\*%/, tokenKind: TokenKind.WrappingTimes },
+	{ regex: /^\*/, tokenKind: TokenKind.Times },
+	{ regex: /^==/, tokenKind: TokenKind.Equals },
+	{ regex: /^%/, tokenKind: TokenKind.Modulo },
+	{ regex: /^&&/, tokenKind: TokenKind.LogicalAnd },
+	{ regex: /^\|\|/, tokenKind: TokenKind.LogicalOr },
+	{ regex: /^!/, tokenKind: TokenKind.LogicalNot },
+	{ regex: /^&/, tokenKind: TokenKind.BitwiseAnd },
+	{ regex: /^\|/, tokenKind: TokenKind.BitwiseOr },
+	{ regex: /^~/, tokenKind: TokenKind.BitwiseNot },
+	{ regex: /^=/, tokenKind: TokenKind.Assign },
+	{ regex: /^\?\./, tokenKind: TokenKind.OptionalChain },
+	{ regex: /^<</, tokenKind: TokenKind.LeftShift },
+	{ regex: /^>>/, tokenKind: TokenKind.RightShift },
+	{ regex: /^u([1-9]\d*)(?![$\w])/, tokenKind: TokenKind.UnsignedIntegerType },
+	{ regex: /^i([1-9]\d*)(?![$\w])/, tokenKind: TokenKind.SignedIntegerType },
+	{ regex: /^0b[01](?:_?[01])*/, tokenKind: TokenKind.BinaryNumber },
+	{ regex: /^0x[\da-fA-F](?:_?[\da-fA-F])*/, tokenKind: TokenKind.HexNumber },
+	{ regex: /^0o[0-7](?:_?[0-7])*/, tokenKind: TokenKind.OctalNumber },
+	{ regex: /^\d(?:_?\d)*(?:\.\d(?:_?\d)*)?/, tokenKind: TokenKind.Number },
+	{ regex: /^"(\\"|[^"]+)"/, tokenKind: TokenKind.String },
+	{ regex: /^'(\\'|[^']+)'/, tokenKind: TokenKind.String },
+	{ regex: /^([a-zA-Z_$][$\w]*) *\(/, tokenKind: TokenKind.Call },
+	{ regex: /^([a-zA-Z_$][$\w]*)/, tokenKind: TokenKind.Identifier }
+]
 
 export const tokenise = function* (code: string): Generator<Token, void> {
 	let index = 0
@@ -100,146 +194,21 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 			if (code[index] == ` `)
 				throw new Error(`lines must not begin with whitespace`)
 		} else {
+			checkSpace:
 			if (!(match = /^ +/.exec(code.slice(index)))) {
-				if ((match = /^while(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.While)
-				else if ((match = /^boolean(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Boolean)
-				else if ((match = /^false(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.False)
-				else if ((match = /^true(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.True)
-				else if ((match = /^void(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Void)
-				else if ((match = /^null(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Null)
-				else if ((match = /^f16(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Float16Type)
-				else if ((match = /^f32(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Float32Type)
-				else if ((match = /^f64(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Float64Type)
-				else if ((match = /^f128(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Float128Type)
-				else if ((match = /^u([1-9]\d*)(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.UnsignedIntegerType, match[1])
-				else if ((match = /^i([1-9]\d*)(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.SignedIntegerType, match[1])
-				else if ((match = /^function *([a-zA-Z_$][$\w]*) *\(/.exec(code.slice(index))))
-					yield createToken(TokenKind.Function, match[1])
-				else if ((match = /^as(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.As)
-				else if ((match = /^to(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.To)
-				else if ((match = /^type(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.TypeAlias)
-				else if ((match = /^let(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Let)
-				else if ((match = /^const(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Const)
-				else if ((match = /^return(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Return)
-				else if ((match = /^if(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.If)
-				else if ((match = /^until(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Until)
-				else if ((match = /^do(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Do)
-				else if ((match = /^with(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.With)
-				else if ((match = /^else(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Else)
-				else if ((match = /^loop(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Loop)
-				else if ((match = /^import *"(\\"|[^"]+)"/.exec(code.slice(index))))
-					yield createToken(TokenKind.Import, match[1]!)
-				else if ((match = /^break(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Break)
-				else if ((match = /^continue(?![$\w])/.exec(code.slice(index))))
-					yield createToken(TokenKind.Continue)
-				else if ((match = /^declare +function *([a-zA-Z_$][$\w]*) *\(/.exec(code.slice(index))))
-					yield createToken(TokenKind.DeclaredFunction, match[1])
-				else if ((match = /^\d(?:_?\d)*(?:\.\d(?:_?\d)*)?/.exec(code.slice(index))))
-					yield createToken(TokenKind.Number, match[0]!)
-				else if ((match = /^0[xX][\da-fA-F](?:_?[\da-fA-F])*/.exec(code.slice(index))))
-					yield createToken(TokenKind.HexNumber, match[0]!.slice(2))
-				else if ((match = /^0[oO][0-7](?:_?[0-7])*/.exec(code.slice(index))))
-					yield createToken(TokenKind.OctalNumber, match[0]!.slice(2))
-				else if ((match = /^0[bB][01](?:_?[01])*/.exec(code.slice(index))))
-					yield createToken(TokenKind.BinaryNumber, match[0]!.slice(2))
-				else if ((match = /^"(\\"|[^"]+)"/.exec(code.slice(index))))
-					yield createToken(TokenKind.String, match[1])
-				else if ((match = /^:/.exec(code.slice(index))))
-					yield createToken(TokenKind.Colon)
-				else if ((match = /^([a-zA-Z_$][$\w]*) *\(/.exec(code.slice(index))))
-					yield createToken(TokenKind.Call, match[1])
-				else if ((match = /^\(/.exec(code.slice(index))))
-					yield createToken(TokenKind.OpenBracket)
-				else if ((match = /^\)/.exec(code.slice(index))))
-					yield createToken(TokenKind.CloseBracket)
-				else if ((match = /^\{/.exec(code.slice(index))))
-					yield createToken(TokenKind.OpenSquiglyBracket)
-				else if ((match = /^\}/.exec(code.slice(index))))
-					yield createToken(TokenKind.CloseSquiglyBracket)
-				else if ((match = /^\[/.exec(code.slice(index))))
-					yield createToken(TokenKind.OpenSquareBracket)
-				else if ((match = /^\]/.exec(code.slice(index))))
-					yield createToken(TokenKind.CloseSquareBracket)
-				else if ((match = /^,/.exec(code.slice(index))))
-					yield createToken(TokenKind.Comma)
-				else if ((match = /^\^/.exec(code.slice(index))))
-					yield createToken(TokenKind.Xor)
-				else if ((match = /^\+\+/.exec(code.slice(index))))
-					yield createToken(TokenKind.Increment)
-				else if ((match = /^--/.exec(code.slice(index))))
-					yield createToken(TokenKind.Decrement)
-				else if ((match = /^\+/.exec(code.slice(index))))
-					yield createToken(TokenKind.Add)
-				else if ((match = /^-/.exec(code.slice(index))))
-					yield createToken(TokenKind.Minus)
-				else if ((match = /^\//.exec(code.slice(index))))
-					yield createToken(TokenKind.Divide)
-				else if ((match = /^\*\*/.exec(code.slice(index))))
-					yield createToken(TokenKind.Power)
-				else if ((match = /^\*%/.exec(code.slice(index))))
-					yield createToken(TokenKind.WrappingTimes)
-				else if ((match = /^\*/.exec(code.slice(index))))
-					yield createToken(TokenKind.Times)
-				else if ((match = /^==/.exec(code.slice(index))))
-					yield createToken(TokenKind.Equals)
-				else if ((match = /^%/.exec(code.slice(index))))
-					yield createToken(TokenKind.Modulo)
-				else if ((match = /^&&/.exec(code.slice(index))))
-					yield createToken(TokenKind.LogicalAnd)
-				else if ((match = /^\|\|/.exec(code.slice(index))))
-					yield createToken(TokenKind.LogicalOr)
-				else if ((match = /^!/.exec(code.slice(index))))
-					yield createToken(TokenKind.LogicalNot)
-				else if ((match = /^\?\?/.exec(code.slice(index))))
-					yield createToken(TokenKind.NullishCoalesce)
-				else if ((match = /^&/.exec(code.slice(index))))
-					yield createToken(TokenKind.BitwiseAnd)
-				else if ((match = /^\|/.exec(code.slice(index))))
-					yield createToken(TokenKind.Or)
-				else if ((match = /^~/.exec(code.slice(index))))
-					yield createToken(TokenKind.BitwiseNot)
-				else if ((match = /^=/.exec(code.slice(index))))
-					yield createToken(TokenKind.Assign)
-				else if ((match = /^\?\./.exec(code.slice(index))))
-					yield createToken(TokenKind.OptionalChain)
-				else if ((match = /^<</.exec(code.slice(index))))
-					yield createToken(TokenKind.LeftShift)
-				else if ((match = /^>>/.exec(code.slice(index))))
-					yield createToken(TokenKind.RightShift)
-				else if ((match = /^[a-zA-Z_$][$\w]*/.exec(code.slice(index))))
-					yield createToken(TokenKind.Identifier, match[0])
-				else {
-					yield createToken(TokenKind.Error, code[index])
-					column++
-					index++
+				for (const { regex, tokenKind } of tokenRegexes) {
+					if ((match = regex.exec(code.slice(index)))) {
+						yield createToken(tokenKind, match[1])
 
-					continue
+						break checkSpace
+					}
 				}
+
+				yield createToken(TokenKind.Error, code[index])
+				column++
+				index++
+
+				continue
 			}
 
 			column += match[0]!.length

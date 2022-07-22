@@ -286,7 +286,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					left: expression,
 					right: parseElement()
 				}
-			} else if (nextTokenIs(TokenKind.Or)) {
+			} else if (nextTokenIs(TokenKind.BitwiseOr)) {
 				state.cursor++
 
 				expression = {
@@ -755,7 +755,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			return { kind: NodeKind.SignedIntegerType, bits }
 		}
 
-		if (nextTokenIs(TokenKind.DeclaredFunction)) {
+		if (nextTokenIs(TokenKind.DeclareFunction)) {
 			const name = tokens[state.cursor]!.data!
 			const parameters: Node.Parameter[] = []
 
