@@ -4,8 +4,6 @@
 
 ### Operators
 
-`<<%=`, `++%`, `--%`, `<<%`, `**%`, `+%=`, `-%=`, `??=`, `<<=`, `>>=`, `&&=`, `||=`, `**=`, `&=`, `|=`, `:=`, `^=`, `+=`, `-=`, `*=`, `!=`, `%=`, `~=`, `<=`, `>=`, `/=`, `<<`, `>>`, `+%`, `-%`, `++`, `--`, `**`, `*%`, `==`, `&&`, `||`, `?.`, `>`, `<`, `.`, `,`, `^`, `+`, `-`, `/`, `*`, `%`, `!`, `&`, `|`, `~`, `=`, `?`
-
 #### `+` (plus)
 
 in sweet, the `+` is not the `+` operator from other languages
@@ -19,19 +17,49 @@ e.g. `(a as u4) + (b as u8)` results in a `u9` type
 like sweet's `+` operator, the `-` operator also prevents overflow
 even if given 2 unsigned integer types, the result is always a signed integer type
 
----
-
-`->`, `=>`, `:`, `(`, `)`, `{`, `}`, `[`, `]`, `,`
-
 ## Grammar
 
-Module = Statement<0>+
+Module = Statement\<indent = 0>+
 
-Statement\<indent> `\t`{indent} Expression<indent> `\n`
+Statement `\t`{indent} Expression `\n`
 
-Expression = Function | Identifier
+Expression = Function | Identifier | Tag | Enum | UnaryExpression | BinaryExpression | Rement | Assignment
 
-Function\<indent> = `function` ` `* FunctionSignature `\n` Statement<indent + 1>+
+Rement = Identifier RementOperator
+
+RementOperator = `++` | `--` | `++%` | `--%`
+
+UnaryExpression = UnaryOperator Expression
+
+UnaryOperator = `void` | `-` | `~` | `!`
+
+BinaryExpression = Expression ` `* BinaryOperator ` `* Expression
+
+BinaryOperator = ArithmeticOperator | RelationalOperator | EqualityOperator | BitwiseShiftOperator |
+	BinaryBitwiseOperator | BinaryLogicalOperators
+
+ArithmeticOperator = `+` | `-` | `/` | `*` | `%` | `**` | `+%` | `-%` | `/%` | `*%` | `**%`
+
+RelationalOperator = `is` | `<` | `>` | `<=` | `>=`
+
+EqualityOperator = `==` | `!=`
+
+BitwiseShiftOperator = `<<` | `>>` | `<<%`
+
+BinaryBitwiseOperator = `&` | `|` | `^`
+
+BinaryLogicalOperators = `&&` | `||` | `??`
+
+Assignment = Identifier ` `+ AssignmentOperator Expression
+
+AssignmentOperator = `=` | `+=` | `-=` | `/=` | `*=` | `%=` | `**=` | `+%=` | `-%=` | `/%=` | `*%=` | `**%=` | `<<=` |
+	`>>=` | `<<%=` | `&=` | `|=` | `^=` | `&&=` | `||=` | `??=`
+
+Enum = `enum` ` `+ Identifier `\n` (`\t`{(indent + 1)} Identifier (` `* `:` ` `* Expression)? `\n`)+
+
+Tag = `tag` ` `+ Identifier (` `* `:` ` `* Expression)?
+
+Function = `function` ` `+ FunctionSignature `\n` Statement\<indent = (indent + 1)>+
 
 FunctionSignature = Identifier ` `* `(` ` `* FunctionParameters? ` `* `)` (` `* (`->` | `:`?) ` `* Expression)?
 
