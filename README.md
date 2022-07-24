@@ -2,6 +2,58 @@
 
 ## Notes
 
+### `enum`
+
+```sw
+enum MyEnum
+	Foo
+	Bar
+	Baz
+```
+
+is syntactic sugar for
+
+```sw
+tag MyEnum: MyEnum.Foo ? MyEnum.Bar ? MyEnum.Baz
+
+namespace
+	tag Foo
+	tag Bar
+    tag Baz
+```
+
+### `when`
+
+```sw
+when one is Two { three, four }
+	// ...
+```
+
+is syntactic sugar for
+
+```sw
+if one is Two
+	let { three, four } = one
+
+	// ...
+```
+
+### `with`
+
+```sw
+with one as Two { three, four }
+	// ...
+```
+
+is syntactic sugar for
+
+```sw
+block
+	let { three, four } = one as Two
+
+	// ...
+```
+
 ### Operators
 
 #### `+` (plus)

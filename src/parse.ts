@@ -433,7 +433,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			}
 		}
 
-		if (nextTokenIs(TokenKind.Const)) {
+		if (nextTokenIs(TokenKind.Constant)) {
 			state.cursor++
 
 			const binding: Node.Identifier = {
