@@ -94,7 +94,7 @@ Rement = (Identifier | PropertyAccess) RementOperator
 
 RementOperator = `++` | `--` | `++%` | `--%`
 
-UnaryExpression = UnaryOperator Expression
+UnaryExpression = UnaryOperator ` `* Expression
 
 UnaryOperator = `void` | `-` | `~` | `!`
 
