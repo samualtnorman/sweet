@@ -158,7 +158,18 @@ export enum TokenKind {
 	Async,
 	Of,
 	Define,
-	Namespace
+	Namespace,
+	Comptime,
+	From,
+	Test,
+	Tests,
+	Unless,
+	Any,
+	Unknown,
+	Unique,
+	Symbol,
+	Runtime,
+	Opaque
 }
 
 export type Token = { kind: TokenKind, data: string | undefined, index: number, line: number, column: number }
@@ -275,6 +286,17 @@ const tokenRegexes: { regex: RegExp, tokenKind: TokenKind }[] = [
 	{ regex: /^of(?![$\w])/, tokenKind: TokenKind.Of },
 	{ regex: /^def(?:ine)?(?![$\w])/, tokenKind: TokenKind.Define },
 	{ regex: /^namespace(?![$\w])/, tokenKind: TokenKind.Namespace },
+	{ regex: /^comptime(?![$\w])/, tokenKind: TokenKind.Comptime },
+	{ regex: /^from(?![$\w])/, tokenKind: TokenKind.From },
+	{ regex: /^test(?![$\w])/, tokenKind: TokenKind.Test },
+	{ regex: /^tests(?![$\w])/, tokenKind: TokenKind.Tests },
+	{ regex: /^unless(?![$\w])/, tokenKind: TokenKind.Unless },
+	{ regex: /^any(?![$\w])/, tokenKind: TokenKind.Any },
+	{ regex: /^unknown(?![$\w])/, tokenKind: TokenKind.Unknown },
+	{ regex: /^unique(?![$\w])/, tokenKind: TokenKind.Unique },
+	{ regex: /^symbol(?![$\w])/, tokenKind: TokenKind.Symbol },
+	{ regex: /^runtime(?![$\w])/, tokenKind: TokenKind.Runtime },
+	{ regex: /^opaque(?![$\w])/, tokenKind: TokenKind.Opaque },
 	{ regex: /^>/, tokenKind: TokenKind.BiggerThan },
 	{ regex: /^</, tokenKind: TokenKind.SmallerThan },
 	{ regex: /^\./, tokenKind: TokenKind.Dot },

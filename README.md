@@ -75,9 +75,22 @@ Module = Statement\<indent = 0>+
 
 Statement `\t`{indent} Expression `\n`
 
-Expression = Function | Identifier | Tag | Enum | UnaryExpression | BinaryExpression | Rement | Assignment
+Expression = Function | Identifier | Tag | Enum | UnaryExpression | BinaryExpression | Rement | Assignment |
+	PropertyAccess | VariableDeclaration | Object | Call
 
-Rement = Identifier RementOperator
+Call = Expression ` `* Expression
+
+Object = `{` ` `* (ObjectMember (` `* `,` ` `* ObjectMember)* ` `*)? `}`
+
+ObjectMember = Identifier (` `* `:` ` `* Expression)? (` `* `=` ` `* Expression)?
+
+VariableDeclaration = (`let` | `const`) ` `+ (Identifier | Destructure) (` `* `=` ` `* Expression)?
+
+Destructure = `{` ` `* (DestructureMember (` `* `,` ` `* DestructureMember)* ` `*)? `}`
+
+DestructureMember = Identifier (` `* `as` ` `* (Identifier | Destructure))? (` `* `=` ` `* Expression)?
+
+Rement = (Identifier | PropertyAccess) RementOperator
 
 RementOperator = `++` | `--` | `++%` | `--%`
 
@@ -88,7 +101,7 @@ UnaryOperator = `void` | `-` | `~` | `!`
 BinaryExpression = Expression ` `* BinaryOperator ` `* Expression
 
 BinaryOperator = ArithmeticOperator | RelationalOperator | EqualityOperator | BitwiseShiftOperator |
-	BinaryBitwiseOperator | BinaryLogicalOperators
+	BinaryBitwiseOperator | BinaryLogicalOperator | `?` | `..`
 
 ArithmeticOperator = `+` | `-` | `/` | `*` | `%` | `**` | `+%` | `-%` | `/%` | `*%` | `**%`
 
@@ -100,12 +113,14 @@ BitwiseShiftOperator = `<<` | `>>` | `<<%`
 
 BinaryBitwiseOperator = `&` | `|` | `^`
 
-BinaryLogicalOperators = `&&` | `||` | `??`
+BinaryLogicalOperator = `&&` | `||` | `??`
 
-Assignment = Identifier ` `+ AssignmentOperator Expression
+Assignment = (Identifier | PropertyAccess | Destructure) ` `+ AssignmentOperator ` `* Expression
+
+PropertyAccess = (Identifier | PropertyAccess) ` `* `.` ` `* Identifier
 
 AssignmentOperator = `=` | `+=` | `-=` | `/=` | `*=` | `%=` | `**=` | `+%=` | `-%=` | `/%=` | `*%=` | `**%=` | `<<=` |
-	`>>=` | `<<%=` | `&=` | `|=` | `^=` | `&&=` | `||=` | `??=`
+	`>>=` | `<<%=` | `&=` | `|=` | `^=` | `&&=` | `||=` | `??=` | `..=`
 
 Enum = `enum` ` `+ Identifier `\n` (`\t`{(indent + 1)} Identifier (` `* `:` ` `* Expression)? `\n`)+
 
@@ -113,10 +128,6 @@ Tag = `tag` ` `+ Identifier (` `* `:` ` `* Expression)?
 
 Function = `function` ` `+ FunctionSignature `\n` Statement\<indent = (indent + 1)>+
 
-FunctionSignature = Identifier ` `* `(` ` `* FunctionParameters? ` `* `)` (` `* (`->` | `:`?) ` `* Expression)?
+FunctionSignature = Identifier ` `* Identifier (` `* `:` ` `* Expression)? (` `* `->` ` `* Expression)?
 
-FunctionParameters = FunctionParameter (` `* `,` ` `* FunctionParameter)*
-
-FunctionParameter = Identifier (` `* `:` ` `* Expression)?
-
-Identifier = (`a`-`z` | `A`-`Z` | `_` | `$`) (`a`-`z` | `A`-`Z` | `_` | `$` | `0`-`9`)*
+Identifier = (`a`-`z` | `A`-`Z` | `_`) (`a`-`z` | `A`-`Z` | `_` | `0`-`9`)*
