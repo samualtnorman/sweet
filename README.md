@@ -16,7 +16,7 @@ is syntactic sugar for
 ```sw
 tag MyEnum: MyEnum.Foo ? MyEnum.Bar ? MyEnum.Baz
 
-namespace
+namespace MyEnum
 	tag Foo
 	tag Bar
 	tag Baz
