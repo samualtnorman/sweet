@@ -19,7 +19,7 @@ tag MyEnum: MyEnum.Foo ? MyEnum.Bar ? MyEnum.Baz
 namespace
 	tag Foo
 	tag Bar
-    tag Baz
+	tag Baz
 ```
 
 ### `when`
