@@ -76,29 +76,35 @@ Module = Statement\<indent = 0>+
 Statement `\t`{indent} Expression `\n`
 
 Expression = Function | Identifier | Tag | Enum | UnaryExpression | BinaryExpression | Rement | Assignment |
-	PropertyAccess | VariableDeclaration | Object | Call
+	PropertyAccess | VariableDeclaration | Object | Call | String | FunctionType
 
-Call = Expression ` `* Expression
+DeclareImport = `declare` `import` String Object
 
-Object = `{` ` `* (ObjectMember (` `* `,` ` `* ObjectMember)* ` `*)? `}`
+FunctionType = Expression `->` Expression
 
-ObjectMember = Identifier (` `* `:` ` `* Expression)? (` `* `=` ` `* Expression)?
+String = `"` (`\"` | !`"`)+ `"`
 
-VariableDeclaration = (`let` | `const`) ` `+ (Identifier | Destructure) (` `* `=` ` `* Expression)?
+Call = Expression Expression
 
-Destructure = `{` ` `* (DestructureMember (` `* `,` ` `* DestructureMember)* ` `*)? `}`
+Object = `{` (ObjectMember (`,` ObjectMember)*)? `}`
 
-DestructureMember = Identifier (` `* `as` ` `* (Identifier | Destructure))? (` `* `=` ` `* Expression)?
+ObjectMember = Identifier (`:` Expression)? (`=` Expression)?
+
+VariableDeclaration = (`let` | `const`) (Identifier | Destructure) (`=` Expression)?
+
+Destructure = `{` (DestructureMember (`,` DestructureMember)*)? `}`
+
+DestructureMember = Identifier (`as` (Identifier | Destructure))? (`=` Expression)?
 
 Rement = (Identifier | PropertyAccess) RementOperator
 
 RementOperator = `++` | `--` | `++%` | `--%`
 
-UnaryExpression = UnaryOperator ` `* Expression
+UnaryExpression = UnaryOperator Expression
 
 UnaryOperator = `void` | `-` | `~` | `!`
 
-BinaryExpression = Expression ` `* BinaryOperator ` `* Expression
+BinaryExpression = Expression BinaryOperator Expression
 
 BinaryOperator = ArithmeticOperator | RelationalOperator | EqualityOperator | BitwiseShiftOperator |
 	BinaryBitwiseOperator | BinaryLogicalOperator | `?` | `..`
@@ -115,19 +121,19 @@ BinaryBitwiseOperator = `&` | `|` | `^`
 
 BinaryLogicalOperator = `&&` | `||` | `??`
 
-Assignment = (Identifier | PropertyAccess | Destructure) ` `+ AssignmentOperator ` `* Expression
+Assignment = (Identifier | PropertyAccess | Destructure) AssignmentOperator Expression
 
-PropertyAccess = (Identifier | PropertyAccess) ` `* `.` ` `* Identifier
+PropertyAccess = (Identifier | PropertyAccess) `.` Identifier
 
 AssignmentOperator = `=` | `+=` | `-=` | `/=` | `*=` | `%=` | `**=` | `+%=` | `-%=` | `/%=` | `*%=` | `**%=` | `<<=` |
-	`>>=` | `<<%=` | `&=` | `|=` | `^=` | `&&=` | `||=` | `??=` | `..=`
+	`>>=` | `<<%=` | `&=` | `|=` | `^=` | `&&=` | `||=` | `??=` | `..=` | `:=`
 
-Enum = `enum` ` `+ Identifier `\n` (`\t`{(indent + 1)} Identifier (` `* `:` ` `* Expression)? `\n`)+
+Enum = `enum` Identifier `\n` (`\t`{(indent + 1)} Identifier (`:` Expression)? `\n`)+
 
-Tag = `tag` ` `+ Identifier (` `* `:` ` `* Expression)?
+Tag = `tag` Identifier (`:` Expression)?
 
-Function = `function` ` `+ FunctionSignature `\n` Statement\<indent = (indent + 1)>+
+Function = `function` FunctionSignature `\n` Statement\<indent = (indent + 1)>+
 
-FunctionSignature = Identifier ` `* Identifier (` `* `:` ` `* Expression)? (` `* `->` ` `* Expression)?
+FunctionSignature = Identifier Identifier (`:` Expression)? (`->` Expression)?
 
 Identifier = (`a`-`z` | `A`-`Z` | `_`) (`a`-`z` | `A`-`Z` | `_` | `0`-`9`)*

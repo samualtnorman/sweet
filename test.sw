@@ -1,7 +1,3 @@
-declare module "console" as {
-	log(value: any) null
-}
-
-import "console" as { log }
+declare import "console" { log: any -> null }
 
 log(42)
