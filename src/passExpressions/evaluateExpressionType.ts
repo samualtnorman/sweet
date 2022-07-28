@@ -125,13 +125,13 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 		}
 
 		case NodeKind.Call: {
-			assert(context.variables.has(expression.name), `undeclared function "${expression.name}"`)
+			assert(context.variables.has(expression.callable), `undeclared function "${expression.callable}"`)
 
-			const variable = context.variables.get(expression.name)!
+			const variable = context.variables.get(expression.callable)!
 
-			assert(variable.type.kind == TypeKind.Function, `variable ${expression.name} is not a function`)
-			assert(variable.isDefined, `undefined function "${expression.name}"`)
-			assert(variable.type.parameters.length == expression.arguments.length, `number of arguments did not match to call ${expression.name}()`)
+			assert(variable.type.kind == TypeKind.Function, `variable ${expression.callable} is not a function`)
+			assert(variable.isDefined, `undefined function "${expression.callable}"`)
+			assert(variable.type.parameters.length == expression.arguments.length, `number of arguments did not match to call ${expression.callable}()`)
 
 			for (const [ index, type ] of variable.type.parameters.entries())
 				expression.arguments[index] = castExpression(expression.arguments[index]!, type, context)
@@ -172,7 +172,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 		case NodeKind.Float64Literal:
 			return { kind: TypeKind.Float64 }
 
-		case NodeKind.VariableDeclaration: {
+		case NodeKind.Let: {
 			assert(expression.type, HERE)
 			assert(expression.initialValue, HERE)
 

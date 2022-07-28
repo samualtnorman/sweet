@@ -159,6 +159,7 @@ rules:
   unicorn/better-regex: off
   unicorn/prefer-top-level-await: off
   no-fallthrough: off
+  unicorn/no-unsafe-regex: off
 
   no-constant-condition:
     - warn

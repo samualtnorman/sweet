@@ -50,7 +50,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				}
 			}
 
-			case NodeKind.VariableDeclaration: {
+			case NodeKind.Let: {
 				assert(expression.type, HERE)
 				assert(expression.type.kind == NodeKind.SignedIntegerType, HERE)
 				assert(expression.type.bits == 32, HERE)
@@ -227,12 +227,12 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 			}
 
 			case NodeKind.Call: {
-				const reference = ensure(context.references.get(expression.name), `no function "${expression.name}"`)
+				const reference = ensure(context.references.get(expression.callable), `no function "${expression.callable}"`)
 
 				assert(reference.kind == ReferenceKind.Function, HERE)
 
 				return module.call(
-					expression.name,
+					expression.callable,
 					expression.arguments.map(expression => generateWASMExpression(expression, context)),
 					reference.returnType
 				)
@@ -264,7 +264,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 			module.block(
 				null,
 				expressions.map(expression => {
-					if (expression.kind == NodeKind.VariableDeclaration) {
+					if (expression.kind == NodeKind.Let) {
 						const type = evaluateType(ensure(expression.type, HERE))
 
 						module.addGlobal(

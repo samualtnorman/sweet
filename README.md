@@ -76,9 +76,19 @@ Module = Statement\<indent = 0>+
 Statement `\t`{indent} Expression `\n`
 
 Expression = Function | Identifier | Tag | Enum | UnaryExpression | BinaryExpression | Rement | Assignment |
-	PropertyAccess | VariableDeclaration | Object | Call | String | FunctionType
+	GetMember | VariableDeclaration | Object | Call | String | FunctionType | Import | Array
 
-DeclareImport = `declare` `import` String Object
+DeclaredImport = `declare` `import` String `as` `{` DeclaredImportMember (`,` DeclaredImportMember)* `}`
+
+DeclaredImportMember = ((Identifier | String) `as`)? Identifier `:` Expression
+
+Array = `[` (Expression (`,` Expression)*)? `]`
+
+Import = `import` String (`as` (Identifier | ImportDestructure))?
+
+ImportDestructure = `{` (ImportDestructureMember (`,` ImportDestructureMember)*)? `}`
+
+ImportDestructureMember = Identifier (`as` (Identifier | ImportDestructure))?
 
 FunctionType = Expression `->` Expression
 
@@ -90,13 +100,13 @@ Object = `{` (ObjectMember (`,` ObjectMember)*)? `}`
 
 ObjectMember = Identifier (`:` Expression)? (`=` Expression)?
 
-VariableDeclaration = (`let` | `const`) (Identifier | Destructure) (`=` Expression)?
+VariableDeclaration = `let` (Identifier | Destructure) (`=` Expression)?
 
 Destructure = `{` (DestructureMember (`,` DestructureMember)*)? `}`
 
 DestructureMember = Identifier (`as` (Identifier | Destructure))? (`=` Expression)?
 
-Rement = (Identifier | PropertyAccess) RementOperator
+Rement = (Identifier | GetMember) RementOperator
 
 RementOperator = `++` | `--` | `++%` | `--%`
 
@@ -121,9 +131,9 @@ BinaryBitwiseOperator = `&` | `|` | `^`
 
 BinaryLogicalOperator = `&&` | `||` | `??`
 
-Assignment = (Identifier | PropertyAccess | Destructure) AssignmentOperator Expression
+Assignment = (Identifier | GetMember | Destructure) AssignmentOperator Expression
 
-PropertyAccess = (Identifier | PropertyAccess) `.` Identifier
+GetMember = Expression `.` Identifier
 
 AssignmentOperator = `=` | `+=` | `-=` | `/=` | `*=` | `%=` | `**=` | `+%=` | `-%=` | `/%=` | `*%=` | `**%=` | `<<=` |
 	`>>=` | `<<%=` | `&=` | `|=` | `^=` | `&&=` | `||=` | `??=` | `..=` | `:=`
@@ -132,8 +142,6 @@ Enum = `enum` Identifier `\n` (`\t`{(indent + 1)} Identifier (`:` Expression)? `
 
 Tag = `tag` Identifier (`:` Expression)?
 
-Function = `function` FunctionSignature `\n` Statement\<indent = (indent + 1)>+
-
-FunctionSignature = Identifier Identifier (`:` Expression)? (`->` Expression)?
+Function = `function` Identifier Identifier (`:` Expression)? (`->` Expression)? `\n` Statement\<indent = (indent + 1)>+
 
 Identifier = (`a`-`z` | `A`-`Z` | `_`) (`a`-`z` | `A`-`Z` | `_` | `0`-`9`)*

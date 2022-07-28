@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/array-type */
 import { assert } from "@samual/lib"
 import { getIntegerLength } from "./shared"
 import { printToken, Token, TokenKind } from "./tokenise"
@@ -11,17 +12,16 @@ export enum NodeKind {
 	Assignment,
 	Call,
 	Add,
-	VariableDeclaration,
+	Let,
 	Minus,
 	IfStatement,
-	IfElse,
+	If,
 	Block,
 	Function,
 	Parameter,
 	Return,
 	SignedIntegerLiteral,
 	UnsignedIntegerLiteral,
-	ConstantDeclaration,
 	Increment,
 	SignedIntegerType,
 	UnsignedIntegerType,
@@ -53,61 +53,47 @@ export enum NodeKind {
 	Decrement,
 	Equal,
 	NotEqual,
-	DeclaredFunction,
-	WrappingTimes
+	WrappingTimes,
+	DeclaredImport,
+	DeclaredImportMember,
+	Array,
+	Import,
+	ImportDestructure,
+	ImportDestructureMember,
+	Destructure,
+	GetMember,
+	String,
+	BitwiseNot,
+	LogicalNot
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Node {
-	export type Identifier = { kind: NodeKind.Identifier, name: string }
-	export type Assignment = { kind: NodeKind.Assignment, binding: Identifier, value: Expression }
-	export type Call = { kind: NodeKind.Call, name: string, arguments: Expression[] }
+	// eslint-disable-next-line @typescript-eslint/ban-types
+	export type Expression = Function | Boolean |
+		Identifier | Call | Add | Minus | If | Assignment | Let | Return | Increment | SignedIntegerType |
+		UnsignedIntegerType | Float16Type | Float32Type | Float64Type | Float128Type | Null | Block | To | As | Or |
+		Void | Object | FunctionType | Any | Times | MinusPrefix | Divide | While | WrappingAdd | Decrement | Equal |
+		NotEqual | WrappingTimes | DeclaredImport | Import | GetMember | Null | True | False | UnsignedIntegerLiteral |
+		SignedIntegerLiteral | Float16Literal | Float32Literal | Float64Literal | Float128Literal | Array | String
+
+	export type Import = { kind: NodeKind.Import, path: string, as: string | ImportDestructureMember[] | undefined }
+	export type Array = { kind: NodeKind.Array, expressions: Expression[] }
+	export type Call = { kind: NodeKind.Call, callable: Expression, argument: Expression }
 	export type Add = { kind: NodeKind.Add, left: Expression, right: Expression }
 	export type Times = { kind: NodeKind.Times, left: Expression, right: Expression }
 	export type WrappingTimes = { kind: NodeKind.WrappingTimes, left: Expression, right: Expression }
 	export type Minus = { kind: NodeKind.Minus, left: Expression, right: Expression }
 	export type Divide = { kind: NodeKind.Divide, left: Expression, right: Expression }
-
-	export type VariableDeclaration = {
-		kind: NodeKind.VariableDeclaration
-		binding: Identifier
-		type: Expression | undefined
-		initialValue: Expression | undefined
-	}
-
-	export type IfElse = {
-		kind: NodeKind.IfElse
-		condition: Expression
-		truthyBranch: Expression
-		falseyBranch: Expression | undefined
-	}
-
-	export type Function = {
-		kind: NodeKind.Function
-		name: string
-		parameters: Parameter[]
-		returnType: Expression | undefined
-		body: Expression[]
-	}
-
-	export type Parameter = { kind: NodeKind.Parameter, binding: Identifier, type: Expression | undefined }
-	export type Return = { kind: NodeKind.Return, expression: Expression | undefined }
+	export type Return = { kind: NodeKind.Return, expression: Expression }
 	export type SignedIntegerLiteral = { kind: NodeKind.SignedIntegerLiteral, value: bigint, bits: number }
 	export type UnsignedIntegerLiteral = { kind: NodeKind.UnsignedIntegerLiteral, value: bigint, bits: number }
 	export type Float16Literal = { kind: NodeKind.Float16Literal, value: number }
 	export type Float32Literal = { kind: NodeKind.Float32Literal, value: number }
 	export type Float64Literal = { kind: NodeKind.Float64Literal, value: number }
 	export type Float128Literal = { kind: NodeKind.Float128Literal, value: number }
-
-	export type ConstantDeclaration = {
-		kind: NodeKind.ConstantDeclaration
-		binding: Identifier
-		type: Expression | undefined
-		value: Expression
-	}
-
-	export type Increment = { kind: NodeKind.Increment, binding: Identifier }
-	export type Decrement = { kind: NodeKind.Decrement, binding: Identifier }
+	export type Increment = { kind: NodeKind.Increment, binding: Identifier | GetMember }
+	export type Decrement = { kind: NodeKind.Decrement, binding: Identifier | GetMember }
 	export type SignedIntegerType = { kind: NodeKind.SignedIntegerType, bits: number }
 	export type UnsignedIntegerType = { kind: NodeKind.UnsignedIntegerType, bits: number }
 	export type Float16Type = { kind: NodeKind.Float16Type }
@@ -123,36 +109,75 @@ export namespace Node {
 	export type True = { kind: NodeKind.True }
 	export type False = { kind: NodeKind.False }
 	export type Boolean = { kind: NodeKind.Boolean }
-	export type ObjectType = { kind: NodeKind.ObjectType, entries: ObjectEntry[] }
-	export type ObjectEntry = { kind: NodeKind.ObjectEntry, name: string, type: Expression }
-	export type FunctionType = { kind: NodeKind.FunctionType, parameters: Expression[], returnType: Expression }
+	export type FunctionType = { kind: NodeKind.FunctionType, argumentType: Expression, returnType: Expression }
 	export type Any = { kind: NodeKind.Any }
 	export type MinusPrefix = { kind: NodeKind.MinusPrefix, expression: Expression }
 	export type While = { kind: NodeKind.While, condition: Expression, body: Expression }
 	export type WrappingAdd = { kind: NodeKind.WrappingAdd, left: Expression, right: Expression }
 	export type Equal = { kind: NodeKind.Equal, left: Expression, right: Expression }
 	export type NotEqual = { kind: NodeKind.NotEqual, left: Expression, right: Expression }
+	export type Identifier = { kind: NodeKind.Identifier, name: string }
+	export type GetMember = { kind: NodeKind.GetMember, expression: Expression, name: string }
+	export type String = { kind: NodeKind.String, value: string }
+	export type BitwiseNot = { kind: NodeKind.BitwiseNot, expression: Expression }
+	export type LogicalNot = { kind: NodeKind.LogicalNot, expression: Expression }
 
-	export type FunctionDeclaration = {
-		kind: NodeKind.DeclaredFunction
+	export type ImportDestructureMember = {
+		kind: NodeKind.ImportDestructureMember
 		name: string
-		parameters: Parameter[]
-		returnType: Expression | undefined
+		as: string | ImportDestructureMember[]
 	}
 
-	export type Literal = Null | True | False | UnsignedIntegerLiteral | SignedIntegerLiteral | Float16Literal
-		| Float32Literal | Float64Literal | Float128Literal
+	export type Let = {
+		kind: NodeKind.Let
+		binding: Identifier | Destructure
+		type: Expression | undefined
+		initialValue: Expression | undefined
+	}
 
-	export type Expression = Literal | Identifier | Call | Add | Minus | IfElse | Assignment
-		// eslint-disable-next-line @typescript-eslint/ban-types
-		| VariableDeclaration | Function | Return | ConstantDeclaration | Increment | SignedIntegerType
-		| UnsignedIntegerType | Float16Type | Float32Type | Float64Type | Float128Type | Null | Block | To | As | Or
-		// eslint-disable-next-line @typescript-eslint/ban-types
-		| Void | Boolean | ObjectType | FunctionType | Any | Times | MinusPrefix | Divide | While | WrappingAdd
-		| Decrement | Equal | NotEqual | FunctionDeclaration | WrappingTimes
+	export type Destructure = {
+		kind: NodeKind.Destructure,
+		members: { name: string, as: Identifier | Destructure, defaultValue: Expression | undefined }[]
+	}
+
+	export type If = {
+		kind: NodeKind.If
+		condition: Expression
+		truthyBranch: Expression
+		falseyBranch: Expression | undefined
+	}
+
+	export type Function = {
+		kind: NodeKind.Function
+		name: string
+		parameter: Expression
+		parameterType: Expression | undefined
+		returnType: Expression | undefined
+		body: Expression[]
+	}
+
+	export type DeclaredImport = {
+		kind: NodeKind.DeclaredImport
+		module: string
+		members: { name: string, as: string, type: Expression }[]
+	}
+
+	export type Assignment = {
+		kind: NodeKind.Assignment
+		binding: Identifier | GetMember | Destructure
+		value: Expression
+	}
+
+	export type Object = {
+		kind: NodeKind.ObjectType
+		entries: (
+			{ name: string, type: Expression | undefined, value: Expression } |
+			{ name: string, type: Expression, value: undefined }
+		)[]
+	}
 }
 
-export type Node = Node.Expression | Node.Parameter
+export type Node = Node.Expression
 
 export class ParseError extends Error {
 	constructor(
@@ -426,7 +451,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			}
 
 			return {
-				kind: NodeKind.VariableDeclaration,
+				kind: NodeKind.Let,
 				binding,
 				type,
 				initialValue
@@ -709,7 +734,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			}
 
 			return {
-				kind: NodeKind.IfElse,
+				kind: NodeKind.If,
 				condition,
 				truthyBranch,
 				falseyBranch

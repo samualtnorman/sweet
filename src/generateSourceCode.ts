@@ -70,7 +70,7 @@ export function generateSourceFromNode(node: Node, indentString: string, indentL
 		case NodeKind.Call: {
 			const arguments_ = node.arguments.map(node => generateSourceFromNode(node, indentString, indentLevel)).join(`, `)
 
-			return `${node.name}(${arguments_})`
+			return `${node.callable}(${arguments_})`
 		}
 
 		case NodeKind.Times:
@@ -88,7 +88,7 @@ export function generateSourceFromNode(node: Node, indentString: string, indentL
 		case NodeKind.Null:
 			return `null`
 
-		case NodeKind.VariableDeclaration: {
+		case NodeKind.Let: {
 			if (node.type) {
 				const type = generateSourceFromNode(node.type, indentString, indentLevel)
 
