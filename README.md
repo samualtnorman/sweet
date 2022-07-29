@@ -117,7 +117,7 @@ UnaryOperator = `void` | `-` | `~` | `!`
 BinaryExpression = Expression BinaryOperator Expression
 
 BinaryOperator = ArithmeticOperator | RelationalOperator | EqualityOperator | BitwiseShiftOperator |
-	BinaryBitwiseOperator | BinaryLogicalOperator | `?` | `..`
+	BinaryBitwiseOperator | BinaryLogicalOperator | `?` | `..` | `to` | `as`
 
 ArithmeticOperator = `+` | `-` | `/` | `*` | `%` | `**` | `+%` | `-%` | `/%` | `*%` | `**%`
 

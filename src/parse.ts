@@ -8,7 +8,7 @@ import { printToken, Token, TokenKind } from "./tokenise"
 const DEBUG = false
 
 export enum NodeKind {
-	Identifier,
+	Identifier = 1,
 	Assignment,
 	Call,
 	Add,
@@ -64,63 +64,54 @@ export enum NodeKind {
 	GetMember,
 	String,
 	BitwiseNot,
-	LogicalNot
+	LogicalNot,
+	Modulo,
+	Power,
+	WrappingMinus,
+	WrappingDivide,
+	WrappingPower,
+	Is,
+	SmallerThan,
+	BiggerThan,
+	SmallerThanEquals,
+	BiggerThanEquals,
+	Equals,
+	NotEquals,
+	ShiftLeft,
+	ShiftRight,
+	WrappingShiftLeft,
+	BitwiseAnd,
+	BitwiseOr,
+	Xor,
+	LogicalAnd,
+	LogicalOr,
+	NullishCoalesce,
+	Union,
+	Concatenate
 }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Node {
 	// eslint-disable-next-line @typescript-eslint/ban-types
-	export type Expression = Function | Boolean |
-		Identifier | Call | Add | Minus | If | Assignment | Let | Return | Increment | SignedIntegerType |
-		UnsignedIntegerType | Float16Type | Float32Type | Float64Type | Float128Type | Null | Block | To | As | Or |
-		Void | Object | FunctionType | Any | Times | MinusPrefix | Divide | While | WrappingAdd | Decrement | Equal |
-		NotEqual | WrappingTimes | DeclaredImport | Import | GetMember | Null | True | False | UnsignedIntegerLiteral |
-		SignedIntegerLiteral | Float16Literal | Float32Literal | Float64Literal | Float128Literal | Array | String
+	export type Expression = Function | Boolean | Object | String |
+		Identifier | Call | If | Assignment | Let | Return | Increment | SignedIntegerType | UnsignedIntegerType |
+		Float16Type | Float32Type | Float64Type | Float128Type | Null | Block | Void | FunctionType |
+		Any | MinusPrefix | While | Decrement | DeclaredImport | Import | GetMember | Null | True | False |
+		UnsignedIntegerLiteral | SignedIntegerLiteral | Float16Literal | Float32Literal | Float64Literal |
+		Float128Literal | Array | BinaryOperation
 
-	export type Import = { kind: NodeKind.Import, path: string, as: string | ImportDestructureMember[] | undefined }
-	export type Array = { kind: NodeKind.Array, expressions: Expression[] }
-	export type Call = { kind: NodeKind.Call, callable: Expression, argument: Expression }
-	export type Add = { kind: NodeKind.Add, left: Expression, right: Expression }
-	export type Times = { kind: NodeKind.Times, left: Expression, right: Expression }
-	export type WrappingTimes = { kind: NodeKind.WrappingTimes, left: Expression, right: Expression }
-	export type Minus = { kind: NodeKind.Minus, left: Expression, right: Expression }
-	export type Divide = { kind: NodeKind.Divide, left: Expression, right: Expression }
-	export type Return = { kind: NodeKind.Return, expression: Expression }
-	export type SignedIntegerLiteral = { kind: NodeKind.SignedIntegerLiteral, value: bigint, bits: number }
-	export type UnsignedIntegerLiteral = { kind: NodeKind.UnsignedIntegerLiteral, value: bigint, bits: number }
-	export type Float16Literal = { kind: NodeKind.Float16Literal, value: number }
-	export type Float32Literal = { kind: NodeKind.Float32Literal, value: number }
-	export type Float64Literal = { kind: NodeKind.Float64Literal, value: number }
-	export type Float128Literal = { kind: NodeKind.Float128Literal, value: number }
-	export type Increment = { kind: NodeKind.Increment, binding: Identifier | GetMember }
-	export type Decrement = { kind: NodeKind.Decrement, binding: Identifier | GetMember }
-	export type SignedIntegerType = { kind: NodeKind.SignedIntegerType, bits: number }
-	export type UnsignedIntegerType = { kind: NodeKind.UnsignedIntegerType, bits: number }
-	export type Float16Type = { kind: NodeKind.Float16Type }
-	export type Float32Type = { kind: NodeKind.Float32Type }
-	export type Float64Type = { kind: NodeKind.Float64Type }
-	export type Float128Type = { kind: NodeKind.Float128Type }
-	export type Null = { kind: NodeKind.Null }
-	export type Block = { kind: NodeKind.Block, body: Expression[] }
-	export type To = { kind: NodeKind.To, left: Expression, right: Expression }
-	export type As = { kind: NodeKind.As, left: Expression, right: Expression }
-	export type Or = { kind: NodeKind.Or, left: Expression, right: Expression }
-	export type Void = { kind: NodeKind.Void, expression: Expression }
-	export type True = { kind: NodeKind.True }
-	export type False = { kind: NodeKind.False }
-	export type Boolean = { kind: NodeKind.Boolean }
-	export type FunctionType = { kind: NodeKind.FunctionType, argumentType: Expression, returnType: Expression }
-	export type Any = { kind: NodeKind.Any }
-	export type MinusPrefix = { kind: NodeKind.MinusPrefix, expression: Expression }
-	export type While = { kind: NodeKind.While, condition: Expression, body: Expression }
-	export type WrappingAdd = { kind: NodeKind.WrappingAdd, left: Expression, right: Expression }
-	export type Equal = { kind: NodeKind.Equal, left: Expression, right: Expression }
-	export type NotEqual = { kind: NodeKind.NotEqual, left: Expression, right: Expression }
-	export type Identifier = { kind: NodeKind.Identifier, name: string }
-	export type GetMember = { kind: NodeKind.GetMember, expression: Expression, name: string }
-	export type String = { kind: NodeKind.String, value: string }
-	export type BitwiseNot = { kind: NodeKind.BitwiseNot, expression: Expression }
-	export type LogicalNot = { kind: NodeKind.LogicalNot, expression: Expression }
+	export type BinaryOperation = {
+		kind: NodeKind.Add | NodeKind.Minus | NodeKind.Divide | NodeKind.Times | NodeKind.Modulo | NodeKind.Power |
+			NodeKind.WrappingAdd | NodeKind.WrappingMinus | NodeKind.WrappingDivide | NodeKind.WrappingTimes |
+			NodeKind.WrappingPower | NodeKind.Is | NodeKind.SmallerThan | NodeKind.BiggerThan |
+			NodeKind.SmallerThanEquals | NodeKind.BiggerThanEquals | NodeKind.Equals | NodeKind.NotEquals |
+			NodeKind.ShiftLeft | NodeKind.ShiftRight | NodeKind.WrappingShiftLeft | NodeKind.BitwiseAnd |
+			NodeKind.BitwiseOr | NodeKind.Xor | NodeKind.LogicalAnd | NodeKind.LogicalOr | NodeKind.NullishCoalesce |
+			NodeKind.Union | NodeKind.Concatenate | NodeKind.To | NodeKind.As
+
+		left: Expression
+		right: Expression
+	}
 
 	export type ImportDestructureMember = {
 		kind: NodeKind.ImportDestructureMember
@@ -136,7 +127,7 @@ export namespace Node {
 	}
 
 	export type Destructure = {
-		kind: NodeKind.Destructure,
+		kind: NodeKind.Destructure
 		members: { name: string, as: Identifier | Destructure, defaultValue: Expression | undefined }[]
 	}
 
@@ -170,11 +161,44 @@ export namespace Node {
 
 	export type Object = {
 		kind: NodeKind.ObjectType
-		entries: (
-			{ name: string, type: Expression | undefined, value: Expression } |
-			{ name: string, type: Expression, value: undefined }
-		)[]
+		entries:
+			{ name: string, type: Expression | undefined, value: Expression }[] |
+			{ name: string, type: Expression, value: undefined }[]
 	}
+
+	export type Import = { kind: NodeKind.Import, path: string, as: string | ImportDestructureMember[] | undefined }
+	export type Array = { kind: NodeKind.Array, expressions: Expression[] }
+	export type Call = { kind: NodeKind.Call, callable: Expression, argument: Expression }
+	export type Return = { kind: NodeKind.Return, expression: Expression }
+	export type SignedIntegerLiteral = { kind: NodeKind.SignedIntegerLiteral, value: bigint, bits: number }
+	export type UnsignedIntegerLiteral = { kind: NodeKind.UnsignedIntegerLiteral, value: bigint, bits: number }
+	export type Float16Literal = { kind: NodeKind.Float16Literal, value: number }
+	export type Float32Literal = { kind: NodeKind.Float32Literal, value: number }
+	export type Float64Literal = { kind: NodeKind.Float64Literal, value: number }
+	export type Float128Literal = { kind: NodeKind.Float128Literal, value: number }
+	export type Increment = { kind: NodeKind.Increment, binding: Identifier | GetMember }
+	export type Decrement = { kind: NodeKind.Decrement, binding: Identifier | GetMember }
+	export type SignedIntegerType = { kind: NodeKind.SignedIntegerType, bits: number }
+	export type UnsignedIntegerType = { kind: NodeKind.UnsignedIntegerType, bits: number }
+	export type Float16Type = { kind: NodeKind.Float16Type }
+	export type Float32Type = { kind: NodeKind.Float32Type }
+	export type Float64Type = { kind: NodeKind.Float64Type }
+	export type Float128Type = { kind: NodeKind.Float128Type }
+	export type Null = { kind: NodeKind.Null }
+	export type Block = { kind: NodeKind.Block, body: Expression[] }
+	export type Void = { kind: NodeKind.Void, expression: Expression }
+	export type True = { kind: NodeKind.True }
+	export type False = { kind: NodeKind.False }
+	export type Boolean = { kind: NodeKind.Boolean }
+	export type FunctionType = { kind: NodeKind.FunctionType, argumentType: Expression, returnType: Expression }
+	export type Any = { kind: NodeKind.Any }
+	export type MinusPrefix = { kind: NodeKind.MinusPrefix, expression: Expression }
+	export type While = { kind: NodeKind.While, condition: Expression, body: Expression }
+	export type Identifier = { kind: NodeKind.Identifier, name: string }
+	export type GetMember = { kind: NodeKind.GetMember, expression: Expression, name: string }
+	export type String = { kind: NodeKind.String, value: string }
+	export type BitwiseNot = { kind: NodeKind.BitwiseNot, expression: Expression }
+	export type LogicalNot = { kind: NodeKind.LogicalNot, expression: Expression }
 }
 
 export type Node = Node.Expression
@@ -224,6 +248,40 @@ export const parse = (tokens: Token[]) =>
 
 export default parse
 
+export const BinaryOperatorTokenToNodeKinds: { [Key in TokenKind]?: Node.BinaryOperation[`kind`] } = {
+	[TokenKind.Add]: NodeKind.Add,
+	[TokenKind.Minus]: NodeKind.Minus,
+	[TokenKind.Divide]: NodeKind.Divide,
+	[TokenKind.Times]: NodeKind.Times,
+	[TokenKind.Modulo]: NodeKind.Modulo,
+	[TokenKind.Power]: NodeKind.Power,
+	[TokenKind.WrappingAdd]: NodeKind.WrappingAdd,
+	[TokenKind.WrappingMinus]: NodeKind.WrappingMinus,
+	[TokenKind.WrappingDivide]: NodeKind.WrappingDivide,
+	[TokenKind.WrappingTimes]: NodeKind.WrappingTimes,
+	[TokenKind.WrappingPower]: NodeKind.WrappingPower,
+	[TokenKind.Is]: NodeKind.Is,
+	[TokenKind.SmallerThan]: NodeKind.SmallerThan,
+	[TokenKind.BiggerThan]: NodeKind.BiggerThan,
+	[TokenKind.SmallerThanEquals]: NodeKind.SmallerThanEquals,
+	[TokenKind.BiggerThanEquals]: NodeKind.BiggerThanEquals,
+	[TokenKind.Equals]: NodeKind.Equals,
+	[TokenKind.NotEquals]: NodeKind.NotEquals,
+	[TokenKind.ShiftLeft]: NodeKind.ShiftLeft,
+	[TokenKind.ShiftRight]: NodeKind.ShiftRight,
+	[TokenKind.WrappingShiftLeft]: NodeKind.WrappingShiftLeft,
+	[TokenKind.BitwiseAnd]: NodeKind.BitwiseAnd,
+	[TokenKind.BitwiseOr]: NodeKind.BitwiseOr,
+	[TokenKind.Xor]: NodeKind.Xor,
+	[TokenKind.LogicalAnd]: NodeKind.LogicalAnd,
+	[TokenKind.LogicalOr]: NodeKind.LogicalOr,
+	[TokenKind.NullishCoalesce]: NodeKind.NullishCoalesce,
+	[TokenKind.Union]: NodeKind.Union,
+	[TokenKind.Concatenate]: NodeKind.Concatenate,
+	[TokenKind.To]: NodeKind.To,
+	[TokenKind.As]: NodeKind.As
+}
+
 export const parseExpressions = function* (tokens: Token[], indentLevel: number, state: { cursor: number }): Generator<Node.Expression, void> {
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	if (DEBUG) {
@@ -244,83 +302,15 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 
 		let expression = parseElement()
 
-		while (true) {
-			if (nextTokenIs(TokenKind.Divide)) {
-				state.cursor++
+		while (tokens.length - state.cursor) {
+			const kind = BinaryOperatorTokenToNodeKinds[tokens[tokens.length]!.kind]
 
-				expression = {
-					kind: NodeKind.Divide,
-					left: expression,
-					right: parseElement()
-				}
-			} else if (nextTokenIs(TokenKind.Times)) {
-				state.cursor++
+			state.cursor++
 
-				expression = {
-					kind: NodeKind.Times,
-					left: expression,
-					right: parseElement()
-				}
-			} else if (nextTokenIs(TokenKind.WrappingTimes)) {
-				state.cursor++
-
-				expression = {
-					kind: NodeKind.WrappingTimes,
-					left: expression,
-					right: parseElement()
-				}
-			} else if (nextTokenIs(TokenKind.Add)) {
-				state.cursor++
-
-				if (nextTokenIs(TokenKind.Modulo)) {
-					state.cursor++
-
-					expression = {
-						kind: NodeKind.WrappingAdd,
-						left: expression,
-						right: parseElement()
-					}
-				} else {
-					expression = {
-						kind: NodeKind.Add,
-						left: expression,
-						right: parseElement()
-					}
-				}
-			} else if (nextTokenIs(TokenKind.Minus)) {
-				state.cursor++
-
-				expression = {
-					kind: NodeKind.Minus,
-					left: expression,
-					right: parseElement()
-				}
-			} else if (nextTokenIs(TokenKind.To)) {
-				state.cursor++
-
-				expression = {
-					kind: NodeKind.To,
-					left: expression,
-					right: parseElement()
-				}
-			} else if (nextTokenIs(TokenKind.As)) {
-				state.cursor++
-
-				expression = {
-					kind: NodeKind.As,
-					left: expression,
-					right: parseElement()
-				}
-			} else if (nextTokenIs(TokenKind.BitwiseOr)) {
-				state.cursor++
-
-				expression = {
-					kind: NodeKind.Or,
-					left: expression,
-					right: parseElement()
-				}
-			} else
-				break
+			if (kind)
+				expression = { kind, left: expression, right: parseElement() }
+			else
+				return expression
 		}
 
 		return expression

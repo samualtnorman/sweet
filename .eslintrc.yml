@@ -141,7 +141,7 @@ rules:
   unicorn/no-await-expression-member: off
   unicorn/no-null: warn
   unicorn/import-index: warn
-  unicorn/no-unsafe-regex: warn
+  unicorn/no-unsafe-regex: off
   unicorn/no-unused-properties: warn
   # unicorn/prefer-string-replace-all: warn
   # unicorn/prefer-top-level-await: warn
@@ -159,7 +159,6 @@ rules:
   unicorn/better-regex: off
   unicorn/prefer-top-level-await: off
   no-fallthrough: off
-  unicorn/no-unsafe-regex: off
 
   no-constant-condition:
     - warn

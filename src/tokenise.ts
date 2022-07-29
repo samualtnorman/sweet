@@ -177,7 +177,7 @@ export enum TokenKind {
 	SmallerThanEquals,
 	BiggerThanEquals,
 	NotEquals,
-	WrappingShiftleft,
+	WrappingShiftLeft,
 	AddAssign,
 	MinusAssign,
 	DivideAssign,
@@ -204,7 +204,10 @@ export enum TokenKind {
 	WrappingIncrement,
 	WrappingDecrement,
 	NotKeyword,
-	Walrus
+	Walrus,
+	Or,
+	And,
+	Then
 }
 
 export type Token = { kind: TokenKind, data: string | undefined, index: number, line: number, column: number }
@@ -333,6 +336,9 @@ const tokenRegexes: { regex: RegExp, tokenKind: TokenKind }[] = [
 	{ regex: /^runtime(?![$\w])/, tokenKind: TokenKind.Runtime },
 	{ regex: /^opaque(?![$\w])/, tokenKind: TokenKind.Opaque },
 	{ regex: /^is(?![$\w])/, tokenKind: TokenKind.Is },
+	{ regex: /^or(?![$\w])/, tokenKind: TokenKind.Or },
+	{ regex: /^and(?![$\w])/, tokenKind: TokenKind.And },
+	{ regex: /^then(?![$\w])/, tokenKind: TokenKind.Then },
 	{ regex: /^\+%/, tokenKind: TokenKind.WrappingAdd },
 	{ regex: /^-%/, tokenKind: TokenKind.WrappingMinus },
 	{ regex: /^\/%/, tokenKind: TokenKind.WrappingDivide },
