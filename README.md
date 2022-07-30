@@ -142,6 +142,6 @@ Enum = `enum` Identifier `\n` (`\t`{(indent + 1)} Identifier (`:` Expression)? `
 
 Tag = `tag` Identifier (`:` Expression)?
 
-Function = `function` Identifier Identifier (`:` Expression)? (`->` Expression)? `\n` Statement\<indent = (indent + 1)>+
+Function = `function` Identifier (Identifier | Object) (`:` Expression)? (`->` Expression)? `\n` Statement\<indent = (indent + 1)>+
 
 Identifier = (`a`-`z` | `A`-`Z` | `_`) (`a`-`z` | `A`-`Z` | `_` | `0`-`9`)*

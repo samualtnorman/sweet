@@ -141,7 +141,8 @@ export namespace Node {
 	export type Function = {
 		kind: NodeKind.Function
 		name: string
-		parameter: Expression
+		// eslint-disable-next-line @typescript-eslint/ban-types
+		parameter: Identifier | Object
 		parameterType: Expression | undefined
 		returnType: Expression | undefined
 		body: Expression[]
@@ -367,14 +368,13 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			state.cursor++
 
 			if (nextTokenIs(TokenKind.Newline))
-				return { kind: NodeKind.Return, expression: undefined }
+				return { kind: NodeKind.Return, expression: { kind: NodeKind.Null } }
 
 			return { kind: NodeKind.Return, expression: parseExpression() }
 		}
 
 		if (nextTokenIs(TokenKind.Function)) {
 			const name = tokens[state.cursor]!.data!
-			const parameters: Node.Parameter[] = []
 
 			state.cursor++
 
