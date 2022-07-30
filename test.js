@@ -1,27 +1,39 @@
-import { readFile } from "fs/promises"
-import generateWASMModule from "./dist/generateWASMModule.js"
+import { readdir as readDirectory, readFile } from "fs/promises"
 import { parse, tokenise } from "./dist/index.js"
-import { printNodes } from "./dist/printNode.js"
-import { printToken } from "./dist/tokenise.js"
+import chalk from "chalk"
 
-try {
-	const sourceCode = await readFile(`test.sw`, { encoding: `utf-8` })
-	const tokens = [ ...tokenise(sourceCode) ]
+(await readDirectory(`test`)).map(async testFileName => {
+	const testPath = `test/${testFileName}`
 
-	console.log(tokens.map(token => printToken(token)).join(`\n`))
+	try {
+		const sourceCode = await readFile(testPath, { encoding: `utf-8` })
+		const tokens = [ ...tokenise(sourceCode) ]
 
-	const expressions = [ ...parse(tokens) ]
+		void [ ...parse(tokens) ]
+	} catch (error) {
+		console.error(chalk.red(`error in ${testPath}:`))
+		console.error(error)
 
-	console.log(printNodes(expressions, `    `))
+		return
+	}
 
-	const binaryenModule = generateWASMModule(expressions)
+	console.log(chalk.green(`${testPath} passed`))
+})
 
-	console.log(binaryenModule.emitText())
+// const sourceCode = await readFile(`test.sw`, { encoding: `utf-8` })
+// const tokens = [ ...tokenise(sourceCode) ]
 
-	const module = new WebAssembly.Module(binaryenModule.emitBinary())
-	const { exports } = new WebAssembly.Instance(module, { _: { logI32: console.log } })
+// console.log(tokens.map(token => printToken(token)).join(`\n`))
 
-	console.log(exports)
-} catch (error) {
-	console.error(error)
-}
+// const expressions = [ ...parse(tokens) ]
+
+// console.log(printNodes(expressions, `    `))
+
+// const binaryenModule = generateWASMModule(expressions)
+
+// console.log(binaryenModule.emitText())
+
+// const module = new WebAssembly.Module(binaryenModule.emitBinary())
+// const { exports } = new WebAssembly.Instance(module, { _: { logI32: console.log } })
+
+// console.log(exports)

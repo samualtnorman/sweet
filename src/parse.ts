@@ -304,7 +304,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 		let expression = parseElement()
 
 		while (tokens.length - state.cursor) {
-			const kind = BinaryOperatorTokenToNodeKinds[tokens[tokens.length]!.kind]
+			const kind = BinaryOperatorTokenToNodeKinds[tokens[state.cursor]!.kind]
 
 			state.cursor++
 
@@ -373,50 +373,54 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			return { kind: NodeKind.Return, expression: parseExpression() }
 		}
 
-		if (nextTokenIs(TokenKind.Function)) {
-			const name = tokens[state.cursor]!.data!
+		// if (nextTokenIs(TokenKind.Function)) {
+		// 	const name = tokens[state.cursor]!.data!
 
-			state.cursor++
+		// 	state.cursor++
 
-			if (!nextTokenIs(TokenKind.CloseBracket)) {
-				while (true) {
-					const identifier = expectToken(TokenKind.Identifier)
+		// 	const parameter = parseExpression()
 
-					expectToken(TokenKind.Colon)
+		// 	// if (parameter.kind != NodeKind.Identifier && parameter.kind != NodeKind.Object)
 
-					parameters.push({
-						kind: NodeKind.Parameter,
-						binding: { kind: NodeKind.Identifier, name: identifier.data! },
-						type: parseExpression()
-					})
+		// 	if (!nextTokenIs(TokenKind.CloseBracket)) {
+		// 		while (true) {
+		// 			const identifier = expectToken(TokenKind.Identifier)
 
-					if (nextTokenIs(TokenKind.CloseBracket))
-						break
+		// 			expectToken(TokenKind.Colon)
 
-					expectToken(TokenKind.Comma)
-				}
-			}
+		// 			parameters.push({
+		// 				kind: NodeKind.Parameter,
+		// 				binding: { kind: NodeKind.Identifier, name: identifier.data! },
+		// 				type: parseExpression()
+		// 			})
 
-			state.cursor++
+		// 			if (nextTokenIs(TokenKind.CloseBracket))
+		// 				break
 
-			let returnType
+		// 			expectToken(TokenKind.Comma)
+		// 		}
+		// 	}
 
-			if (nextTokenIs(TokenKind.Colon)) {
-				state.cursor++
-				returnType = parseExpression()
-			} else if (!nextTokenIs(TokenKind.Newline))
-				returnType = parseExpression()
+		// 	state.cursor++
 
-			expectNewline()
+		// 	let returnType
 
-			return {
-				kind: NodeKind.Function,
-				name,
-				parameters,
-				returnType,
-				body: [ ...parseExpressions(tokens, indentLevel + 1, state) ]
-			}
-		}
+		// 	if (nextTokenIs(TokenKind.Colon)) {
+		// 		state.cursor++
+		// 		returnType = parseExpression()
+		// 	} else if (!nextTokenIs(TokenKind.Newline))
+		// 		returnType = parseExpression()
+
+		// 	expectNewline()
+
+		// 	return {
+		// 		kind: NodeKind.Function,
+		// 		name,
+		// 		parameters,
+		// 		returnType,
+		// 		body: [ ...parseExpressions(tokens, indentLevel + 1, state) ]
+		// 	}
+		// }
 
 		if (nextTokenIs(TokenKind.Let)) {
 			state.cursor++
@@ -448,30 +452,30 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			}
 		}
 
-		if (nextTokenIs(TokenKind.Constant)) {
-			state.cursor++
+		// if (nextTokenIs(TokenKind.Constant)) {
+		// 	state.cursor++
 
-			const binding: Node.Identifier = {
-				kind: NodeKind.Identifier,
-				name: expectToken(TokenKind.Identifier).data!
-			}
+		// 	const binding: Node.Identifier = {
+		// 		kind: NodeKind.Identifier,
+		// 		name: expectToken(TokenKind.Identifier).data!
+		// 	}
 
-			let type
+		// 	let type
 
-			if (nextTokenIs(TokenKind.Colon)) {
-				state.cursor++
-				type = parseExpression()
-			}
+		// 	if (nextTokenIs(TokenKind.Colon)) {
+		// 		state.cursor++
+		// 		type = parseExpression()
+		// 	}
 
-			expectToken(TokenKind.Assign)
+		// 	expectToken(TokenKind.Assign)
 
-			return {
-				kind: NodeKind.ConstantDeclaration,
-				binding,
-				type,
-				value: parseExpression()
-			}
-		}
+		// 	return {
+		// 		kind: NodeKind.ConstantDeclaration,
+		// 		binding,
+		// 		type,
+		// 		value: parseExpression()
+		// 	}
+		// }
 
 		if (nextTokenIs(TokenKind.Identifier)) {
 			const name = tokens[state.cursor]!.data!
@@ -626,28 +630,6 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			}
 		}
 
-		if (nextTokenIs(TokenKind.Call)) {
-			const name = tokens[state.cursor]!.data!
-			const arguments_ = []
-
-			state.cursor++
-
-			if (!nextTokenIs(TokenKind.CloseBracket)) {
-				while (true) {
-					arguments_.push(parseExpression())
-
-					if (nextTokenIs(TokenKind.CloseBracket))
-						break
-
-					expectToken(TokenKind.Comma)
-				}
-			}
-
-			state.cursor++
-
-			return { kind: NodeKind.Call, name, arguments: arguments_ }
-		}
-
 		if (nextTokenIs(TokenKind.OpenBracket)) {
 			state.cursor++
 
@@ -770,43 +752,43 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			return { kind: NodeKind.SignedIntegerType, bits }
 		}
 
-		if (nextTokenIs(TokenKind.DeclareFunction)) {
-			const name = tokens[state.cursor]!.data!
-			const parameters: Node.Parameter[] = []
+		// if (nextTokenIs(TokenKind.DeclareFunction)) {
+		// 	const name = tokens[state.cursor]!.data!
+		// 	const parameters: Node.Parameter[] = []
 
-			state.cursor++
+		// 	state.cursor++
 
-			if (!nextTokenIs(TokenKind.CloseBracket)) {
-				while (true) {
-					const identifier = expectToken(TokenKind.Identifier)
+		// 	if (!nextTokenIs(TokenKind.CloseBracket)) {
+		// 		while (true) {
+		// 			const identifier = expectToken(TokenKind.Identifier)
 
-					expectToken(TokenKind.Colon)
+		// 			expectToken(TokenKind.Colon)
 
-					parameters.push({
-						kind: NodeKind.Parameter,
-						binding: { kind: NodeKind.Identifier, name: identifier.data! },
-						type: parseExpression()
-					})
+		// 			parameters.push({
+		// 				kind: NodeKind.Parameter,
+		// 				binding: { kind: NodeKind.Identifier, name: identifier.data! },
+		// 				type: parseExpression()
+		// 			})
 
-					if (nextTokenIs(TokenKind.CloseBracket))
-						break
+		// 			if (nextTokenIs(TokenKind.CloseBracket))
+		// 				break
 
-					expectToken(TokenKind.Comma)
-				}
-			}
+		// 			expectToken(TokenKind.Comma)
+		// 		}
+		// 	}
 
-			state.cursor++
+		// 	state.cursor++
 
-			let returnType
+		// 	let returnType
 
-			if (nextTokenIs(TokenKind.Colon)) {
-				state.cursor++
-				returnType = parseExpression()
-			} else if (!nextTokenIs(TokenKind.Newline))
-				returnType = parseExpression()
+		// 	if (nextTokenIs(TokenKind.Colon)) {
+		// 		state.cursor++
+		// 		returnType = parseExpression()
+		// 	} else if (!nextTokenIs(TokenKind.Newline))
+		// 		returnType = parseExpression()
 
-			return { kind: NodeKind.DeclaredFunction, name, parameters, returnType }
-		}
+		// 	return { kind: NodeKind.DeclaredFunction, name, parameters, returnType }
+		// }
 
 		throw new ParseError(tokens[state.cursor])
 	}

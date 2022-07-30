@@ -4,7 +4,6 @@ import json from "@rollup/plugin-json"
 import nodeResolve from "@rollup/plugin-node-resolve"
 import { readdir as readDirectory } from "fs/promises"
 import preserveShebang from "rollup-plugin-preserve-shebang"
-import { terser } from "rollup-plugin-terser"
 import packageConfig_ from "./package.json"
 
 /** @typedef {import("rollup").RollupOptions} RollupOptions */
@@ -57,29 +56,15 @@ if (`dependencies` in packageConfig)
 	external.push(...Object.keys(packageConfig.dependencies))
 
 /** @type {(command: Record<string, unknown>) => Promise<RollupOptions>} */
-export default async ({ w }) => {
-	if (!w) {
-		// plugins.push(terser({
-		// 	ecma: 2020,
-		// 	keep_classnames: true,
-		// 	keep_fnames: true
-		// }))
-	} else if (`devDependencies` in packageConfig)
-		external.push(...Object.keys(packageConfig.devDependencies))
-
-	return {
-		input: Object.fromEntries(
-			(await findFilesPromise)
-				.filter(path => path.endsWith(`.ts`) && !path.endsWith(`.d.ts`))
-				.map(path => [ path.slice(sourceDirectory.length + 1, -3), path ])
-		),
-		output: {
-			dir: `dist`,
-			interop: `auto`
-		},
-		plugins,
-		external: external.map(name => new RegExp(`^${name}(?:/|$)`)),
-		preserveEntrySignatures: `allow-extension`,
-		treeshake: { moduleSideEffects: false }
-	}
-}
+export default async () => ({
+	input: Object.fromEntries(
+		(await findFilesPromise)
+			.filter(path => path.endsWith(`.ts`) && !path.endsWith(`.d.ts`))
+			.map(path => [ path.slice(sourceDirectory.length + 1, -3), path ])
+	),
+	output: { dir: `dist`, interop: `auto`, sourcemap: `inline` },
+	plugins,
+	external: external.map(name => new RegExp(`^${name}(?:/|$)`)),
+	preserveEntrySignatures: `allow-extension`,
+	treeshake: { moduleSideEffects: false }
+})

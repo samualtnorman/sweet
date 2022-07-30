@@ -23,16 +23,15 @@
 	"homepage": "https://github.com/samualtnorman/language#readme",
 	"devDependencies": {
 		"@babel/core": "^7.18.9",
-		"@babel/preset-env": "^7.18.9",
 		"@babel/preset-typescript": "^7.18.6",
 		"@rollup/plugin-babel": "^5.3.1",
 		"@rollup/plugin-commonjs": "^22.0.1",
 		"@rollup/plugin-json": "^4.1.0",
 		"@rollup/plugin-node-resolve": "^13.3.0",
-		"@samual/lib": "^0.3.4",
-		"@types/node": "^18.6.2",
+		"@types/node": "^18.6.3",
 		"@typescript-eslint/eslint-plugin": "^5.31.0",
 		"@typescript-eslint/parser": "^5.31.0",
+		"chalk": "^5.0.1",
 		"eslint": "^8.20.0",
 		"eslint-plugin-array-func": "^3.1.7",
 		"eslint-plugin-eslint-comments": "^3.2.0",
@@ -41,7 +40,6 @@
 		"nodemon": "^2.0.19",
 		"rollup": "^2.77.2",
 		"rollup-plugin-preserve-shebang": "^1.0.1",
-		"rollup-plugin-terser": "^7.0.2",
 		"typescript": "^4.7.4"
 	},
 	"type": "module",
@@ -52,6 +50,7 @@
 		"./*": "./*"
 	},
 	"dependencies": {
+		"@samual/lib": "^0.3.4",
 		"binaryen": "^109.0.0"
 	}
 }
