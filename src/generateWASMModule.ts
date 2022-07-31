@@ -72,7 +72,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				return module.i32.const(Number(expression.value))
 
 			case NodeKind.While: {
-				assert(expression.body.kind == NodeKind.Block, HERE)
+				assert(expression.body.kind == NodeKind.Do, HERE)
 
 				return module.loop(
 					`loop`,

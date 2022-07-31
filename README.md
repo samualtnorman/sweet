@@ -1,6 +1,26 @@
 # Sweet
 
+## Influences
+- JavaScript
+- TypeScript
+- Zig
+- Rust
+- CoffeeScript
+
 ## Notes
+
+### `if`
+
+```sw
+if condition
+	body
+```
+
+is syntactic sugar for
+
+```sw
+if condition then do
+	body
 
 ### `enum`
 

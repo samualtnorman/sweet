@@ -202,7 +202,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return evaluateExpressionType(expression.body, context)
 		}
 
-		case NodeKind.Block: {
+		case NodeKind.Do: {
 			passExpressions(expression.body, context)
 
 			return { kind: TypeKind.Null }

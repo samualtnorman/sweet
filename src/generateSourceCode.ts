@@ -108,7 +108,7 @@ export function generateSourceFromNode(node: Node, indentString: string, indentL
 			return `while ${generateSourceFromNode(node.condition, indentString, indentLevel)} ${generateSourceFromNode(node.body, indentString, indentLevel)}`
 		}
 
-		case NodeKind.Block:
+		case NodeKind.Do:
 			return `(\n${node.body.map(node => `${indentString.repeat(indentLevel + 1)}${generateSourceFromNode(node, indentString, indentLevel + 1)}\n`).join(``)}${indentString.repeat(indentLevel)})`
 
 		case NodeKind.WrappingAdd:

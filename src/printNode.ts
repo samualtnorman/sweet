@@ -5,11 +5,7 @@ export const printNode = (node: Record<string, unknown>, indentString = `\t`, in
 	const { kind, ...nodeProperties } = node
 	let o = ``
 
-	if (typeof kind == `number`)
-		o += `${NodeKind[kind]}`
-
-	o += `\n`
-
+	o += `${typeof kind == `number` ? NodeKind[kind] : `-`}\n`
 	indentLevel++
 
 	for (const [ name, value ] of Object.entries(nodeProperties)) {
