@@ -207,138 +207,154 @@ export enum TokenKind {
 	Walrus,
 	Or,
 	And,
-	Then
+	Then,
+	Assert,
+	NumberKeyword,
+	Unsigned
 }
 
-export type Token = { kind: TokenKind, data: string | undefined, index: number, line: number, column: number }
+type DataTokenKinds = TokenKind.UnsignedIntegerType | TokenKind.SignedIntegerType | TokenKind.BinaryNumber |
+	TokenKind.HexNumber | TokenKind.OctalNumber | TokenKind.Number | TokenKind.String | TokenKind.Identifier |
+	TokenKind.Newline | TokenKind.Error
 
-const tokenRegexes: { regex: RegExp, tokenKind: TokenKind }[] = [
-	{ regex: /^while(?![$\w])/, tokenKind: TokenKind.While },
-	{ regex: /^boolean(?![$\w])/, tokenKind: TokenKind.Boolean },
-	{ regex: /^false(?![$\w])/, tokenKind: TokenKind.False },
-	{ regex: /^true(?![$\w])/, tokenKind: TokenKind.True },
-	{ regex: /^void(?![$\w])/, tokenKind: TokenKind.Void },
-	{ regex: /^null(?![$\w])/, tokenKind: TokenKind.Null },
-	{ regex: /^f16(?![$\w])/, tokenKind: TokenKind.Float16Type },
-	{ regex: /^f32(?![$\w])/, tokenKind: TokenKind.Float32Type },
-	{ regex: /^f64(?![$\w])/, tokenKind: TokenKind.Float64Type },
-	{ regex: /^f128(?![$\w])/, tokenKind: TokenKind.Float128Type },
-	{ regex: /^function(?![$\w])/, tokenKind: TokenKind.Function },
-	{ regex: /^as(?![$\w])/, tokenKind: TokenKind.As },
-	{ regex: /^to(?![$\w])/, tokenKind: TokenKind.To },
-	{ regex: /^type(?![$\w])/, tokenKind: TokenKind.Type },
-	{ regex: /^let(?![$\w])/, tokenKind: TokenKind.Let },
-	{ regex: /^const(?:ant)?(?![$\w])/, tokenKind: TokenKind.Constant },
-	{ regex: /^return(?![$\w])/, tokenKind: TokenKind.Return },
-	{ regex: /^if(?![$\w])/, tokenKind: TokenKind.If },
-	{ regex: /^until(?![$\w])/, tokenKind: TokenKind.Until },
-	{ regex: /^do(?![$\w])/, tokenKind: TokenKind.Do },
-	{ regex: /^with(?![$\w])/, tokenKind: TokenKind.With },
-	{ regex: /^else(?![$\w])/, tokenKind: TokenKind.Else },
-	{ regex: /^loop(?![$\w])/, tokenKind: TokenKind.Loop },
-	{ regex: /^import(?![$\w])/, tokenKind: TokenKind.Import },
-	{ regex: /^break(?![$\w])/, tokenKind: TokenKind.Break },
-	{ regex: /^continue(?![$\w])/, tokenKind: TokenKind.Continue },
-	{ regex: /^declare(?![$\w])/, tokenKind: TokenKind.Declare },
-	{ regex: /^function(?![$\w])/, tokenKind: TokenKind.Function },
-	{ regex: /^mod(?:ule)?(?![$\w])/, tokenKind: TokenKind.Module },
-	{ regex: /^for(?![$\w])/, tokenKind: TokenKind.For },
-	{ regex: /^tag(?![$\w])/, tokenKind: TokenKind.Tag },
-	{ regex: /^enum(?:eration)?(?![$\w])/, tokenKind: TokenKind.Enum },
-	{ regex: /^priv(?:ate)?(?![$\w])/, tokenKind: TokenKind.Private },
-	{ regex: /^internal(?![$\w])/, tokenKind: TokenKind.Internal },
-	{ regex: /^match(?![$\w])/, tokenKind: TokenKind.Match },
-	{ regex: /^when(?![$\w])/, tokenKind: TokenKind.When },
-	{ regex: /^do(?![$\w])/, tokenKind: TokenKind.Do },
-	{ regex: /^block(?![$\w])/, tokenKind: TokenKind.Block },
-	{ regex: /^readonly(?![$\w])/, tokenKind: TokenKind.Readonly },
-	{ regex: /^mut(?:able)?(?![$\w])/, tokenKind: TokenKind.Mutable },
-	{ regex: /^abstract(?![$\w])/, tokenKind: TokenKind.Abstract },
-	{ regex: /^arguments(?![$\w])/, tokenKind: TokenKind.Arguments },
-	{ regex: /^await(?![$\w])/, tokenKind: TokenKind.Await },
-	{ regex: /^async(?![$\w])/, tokenKind: TokenKind.Async },
-	{ regex: /^char(?:acter)?(?![$\w])/, tokenKind: TokenKind.Character },
-	{ regex: /^class(?![$\w])/, tokenKind: TokenKind.Class },
-	{ regex: /^debug(?:ger)?(?![$\w])/, tokenKind: TokenKind.Debugger },
-	{ regex: /^default(?![$\w])/, tokenKind: TokenKind.Default },
-	{ regex: /^delete(?![$\w])/, tokenKind: TokenKind.Delete },
-	{ regex: /^double(?![$\w])/, tokenKind: TokenKind.Double },
-	{ regex: /^eval(?:uate)?(?![$\w])/, tokenKind: TokenKind.Evaluate },
-	{ regex: /^export(?![$\w])/, tokenKind: TokenKind.Export },
-	{ regex: /^extends(?![$\w])/, tokenKind: TokenKind.Extends },
-	{ regex: /^final(?![$\w])/, tokenKind: TokenKind.Final },
-	{ regex: /^finally(?![$\w])/, tokenKind: TokenKind.Finally },
-	{ regex: /^float(?![$\w])/, tokenKind: TokenKind.Float },
-	{ regex: /^goto(?![$\w])/, tokenKind: TokenKind.Goto },
-	{ regex: /^impl(?:ements)?(?![$\w])/, tokenKind: TokenKind.Implements },
-	{ regex: /^in(?![$\w])/, tokenKind: TokenKind.In },
-	{ regex: /^instanceof(?![$\w])/, tokenKind: TokenKind.Instanceof },
-	{ regex: /^int(?:eger)?(?![$\w])/, tokenKind: TokenKind.Integer },
-	{ regex: /^interface(?![$\w])/, tokenKind: TokenKind.Interface },
-	{ regex: /^long(?![$\w])/, tokenKind: TokenKind.Long },
-	{ regex: /^native(?![$\w])/, tokenKind: TokenKind.Native },
-	{ regex: /^new(?![$\w])/, tokenKind: TokenKind.New },
-	{ regex: /^package(?![$\w])/, tokenKind: TokenKind.Package },
-	{ regex: /^protected(?![$\w])/, tokenKind: TokenKind.Protected },
-	{ regex: /^pub(?:lic)?(?![$\w])/, tokenKind: TokenKind.Public },
-	{ regex: /^short(?![$\w])/, tokenKind: TokenKind.Short },
-	{ regex: /^static(?![$\w])/, tokenKind: TokenKind.Static },
-	{ regex: /^super(?![$\w])/, tokenKind: TokenKind.Super },
-	{ regex: /^switch(?![$\w])/, tokenKind: TokenKind.Switch },
-	{ regex: /^syncronized(?![$\w])/, tokenKind: TokenKind.Synchronized },
-	{ regex: /^this(?![$\w])/, tokenKind: TokenKind.This },
-	{ regex: /^throw(?![$\w])/, tokenKind: TokenKind.Throw },
-	{ regex: /^throws(?![$\w])/, tokenKind: TokenKind.Throws },
-	{ regex: /^transient(?![$\w])/, tokenKind: TokenKind.Transient },
-	{ regex: /^try(?![$\w])/, tokenKind: TokenKind.Try },
-	{ regex: /^typeof(?![$\w])/, tokenKind: TokenKind.Typeof },
-	{ regex: /^typeis(?![$\w])/, tokenKind: TokenKind.Typeis },
-	{ regex: /^var(?![$\w])/, tokenKind: TokenKind.Var },
-	{ regex: /^volatile(?![$\w])/, tokenKind: TokenKind.Volatile },
-	{ regex: /^yield(?![$\w])/, tokenKind: TokenKind.Yield },
-	{ regex: /^extern(?:al)?(?![$\w])/, tokenKind: TokenKind.External },
-	{ regex: /^ref(?:erence)?(?![$\w])/, tokenKind: TokenKind.Reference },
-	{ regex: /^catch(?![$\w])/, tokenKind: TokenKind.Catch },
-	{ regex: /^self(?![$\w])/, tokenKind: TokenKind.Self },
-	{ regex: /^Self(?![$\w])/, tokenKind: TokenKind.CapitalisedSelf },
-	{ regex: /^trait(?![$\w])/, tokenKind: TokenKind.Trait },
-	{ regex: /^traits(?![$\w])/, tokenKind: TokenKind.Traits },
-	{ regex: /^methods(?![$\w])/, tokenKind: TokenKind.Methods },
-	{ regex: /^method(?![$\w])/, tokenKind: TokenKind.Method },
-	{ regex: /^unsafe(?![$\w])/, tokenKind: TokenKind.Unsafe },
-	{ regex: /^where(?![$\w])/, tokenKind: TokenKind.Where },
-	{ regex: /^use(?![$\w])/, tokenKind: TokenKind.Use },
-	{ regex: /^struct(?:ure)?(?![$\w])/, tokenKind: TokenKind.Structure },
-	{ regex: /^become(?![$\w])/, tokenKind: TokenKind.Become },
-	{ regex: /^box(?![$\w])/, tokenKind: TokenKind.Box },
-	{ regex: /^boxed(?![$\w])/, tokenKind: TokenKind.Boxed },
-	{ regex: /^macro(?![$\w])/, tokenKind: TokenKind.Macro },
-	{ regex: /^override(?![$\w])/, tokenKind: TokenKind.Override },
-	{ regex: /^unsized(?![$\w])/, tokenKind: TokenKind.Unsized },
-	{ regex: /^sizeof(?![$\w])/, tokenKind: TokenKind.Sizeof },
-	{ regex: /^size(?![$\w])/, tokenKind: TokenKind.Size },
-	{ regex: /^virtual(?![$\w])/, tokenKind: TokenKind.Virtual },
-	{ regex: /^union(?![$\w])/, tokenKind: TokenKind.UnionKeyword },
-	{ regex: /^dyn(?:amic)?(?![$\w])/, tokenKind: TokenKind.Dynamic },
-	{ regex: /^async(?![$\w])/, tokenKind: TokenKind.Async },
-	{ regex: /^of(?![$\w])/, tokenKind: TokenKind.Of },
-	{ regex: /^def(?:ine)?(?![$\w])/, tokenKind: TokenKind.Define },
-	{ regex: /^namespace(?![$\w])/, tokenKind: TokenKind.Namespace },
-	{ regex: /^comptime(?![$\w])/, tokenKind: TokenKind.Comptime },
-	{ regex: /^from(?![$\w])/, tokenKind: TokenKind.From },
-	{ regex: /^test(?![$\w])/, tokenKind: TokenKind.Test },
-	{ regex: /^tests(?![$\w])/, tokenKind: TokenKind.Tests },
-	{ regex: /^unless(?![$\w])/, tokenKind: TokenKind.Unless },
-	{ regex: /^any(?![$\w])/, tokenKind: TokenKind.Any },
-	{ regex: /^unknown(?![$\w])/, tokenKind: TokenKind.Unknown },
-	{ regex: /^unique(?![$\w])/, tokenKind: TokenKind.Unique },
-	{ regex: /^symbol(?![$\w])/, tokenKind: TokenKind.Symbol },
-	{ regex: /^runtime(?![$\w])/, tokenKind: TokenKind.Runtime },
-	{ regex: /^opaque(?![$\w])/, tokenKind: TokenKind.Opaque },
-	{ regex: /^is(?![$\w])/, tokenKind: TokenKind.Is },
-	{ regex: /^or(?![$\w])/, tokenKind: TokenKind.Or },
-	{ regex: /^and(?![$\w])/, tokenKind: TokenKind.And },
-	{ regex: /^then(?![$\w])/, tokenKind: TokenKind.Then },
+export type Token = {
+	kind: Exclude<TokenKind, DataTokenKinds>
+	data: undefined
+	index: number
+	line: number
+	column: number
+} | { kind: DataTokenKinds, data: string, index: number, line: number, column: number }
+
+const nonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenKind, DataTokenKinds> }[] = [
+	{ regex: /^while\b/, tokenKind: TokenKind.While },
+	{ regex: /^boolean\b/, tokenKind: TokenKind.Boolean },
+	{ regex: /^false\b/, tokenKind: TokenKind.False },
+	{ regex: /^true\b/, tokenKind: TokenKind.True },
+	{ regex: /^void\b/, tokenKind: TokenKind.Void },
+	{ regex: /^null\b/, tokenKind: TokenKind.Null },
+	{ regex: /^f16\b/, tokenKind: TokenKind.Float16Type },
+	{ regex: /^f32\b/, tokenKind: TokenKind.Float32Type },
+	{ regex: /^f64\b/, tokenKind: TokenKind.Float64Type },
+	{ regex: /^f128\b/, tokenKind: TokenKind.Float128Type },
+	{ regex: /^function\b/, tokenKind: TokenKind.Function },
+	{ regex: /^as\b/, tokenKind: TokenKind.As },
+	{ regex: /^to\b/, tokenKind: TokenKind.To },
+	{ regex: /^type\b/, tokenKind: TokenKind.Type },
+	{ regex: /^let\b/, tokenKind: TokenKind.Let },
+	{ regex: /^const(?:ant)?\b/, tokenKind: TokenKind.Constant },
+	{ regex: /^return\b/, tokenKind: TokenKind.Return },
+	{ regex: /^if\b/, tokenKind: TokenKind.If },
+	{ regex: /^until\b/, tokenKind: TokenKind.Until },
+	{ regex: /^do\b/, tokenKind: TokenKind.Do },
+	{ regex: /^with\b/, tokenKind: TokenKind.With },
+	{ regex: /^else\b/, tokenKind: TokenKind.Else },
+	{ regex: /^loop\b/, tokenKind: TokenKind.Loop },
+	{ regex: /^import\b/, tokenKind: TokenKind.Import },
+	{ regex: /^break\b/, tokenKind: TokenKind.Break },
+	{ regex: /^continue\b/, tokenKind: TokenKind.Continue },
+	{ regex: /^declare\b/, tokenKind: TokenKind.Declare },
+	{ regex: /^function\b/, tokenKind: TokenKind.Function },
+	{ regex: /^mod(?:ule)?\b/, tokenKind: TokenKind.Module },
+	{ regex: /^for\b/, tokenKind: TokenKind.For },
+	{ regex: /^tag\b/, tokenKind: TokenKind.Tag },
+	{ regex: /^enum(?:eration)?\b/, tokenKind: TokenKind.Enum },
+	{ regex: /^priv(?:ate)?\b/, tokenKind: TokenKind.Private },
+	{ regex: /^internal\b/, tokenKind: TokenKind.Internal },
+	{ regex: /^match\b/, tokenKind: TokenKind.Match },
+	{ regex: /^when\b/, tokenKind: TokenKind.When },
+	{ regex: /^do\b/, tokenKind: TokenKind.Do },
+	{ regex: /^block\b/, tokenKind: TokenKind.Block },
+	{ regex: /^readonly\b/, tokenKind: TokenKind.Readonly },
+	{ regex: /^mut(?:able)?\b/, tokenKind: TokenKind.Mutable },
+	{ regex: /^abstract\b/, tokenKind: TokenKind.Abstract },
+	{ regex: /^arguments\b/, tokenKind: TokenKind.Arguments },
+	{ regex: /^await\b/, tokenKind: TokenKind.Await },
+	{ regex: /^async\b/, tokenKind: TokenKind.Async },
+	{ regex: /^char(?:acter)?\b/, tokenKind: TokenKind.Character },
+	{ regex: /^class\b/, tokenKind: TokenKind.Class },
+	{ regex: /^debug(?:ger)?\b/, tokenKind: TokenKind.Debugger },
+	{ regex: /^default\b/, tokenKind: TokenKind.Default },
+	{ regex: /^delete\b/, tokenKind: TokenKind.Delete },
+	{ regex: /^double\b/, tokenKind: TokenKind.Double },
+	{ regex: /^eval(?:uate)?\b/, tokenKind: TokenKind.Evaluate },
+	{ regex: /^export\b/, tokenKind: TokenKind.Export },
+	{ regex: /^extends\b/, tokenKind: TokenKind.Extends },
+	{ regex: /^final\b/, tokenKind: TokenKind.Final },
+	{ regex: /^finally\b/, tokenKind: TokenKind.Finally },
+	{ regex: /^float\b/, tokenKind: TokenKind.Float },
+	{ regex: /^goto\b/, tokenKind: TokenKind.Goto },
+	{ regex: /^impl(?:ements)?\b/, tokenKind: TokenKind.Implements },
+	{ regex: /^in\b/, tokenKind: TokenKind.In },
+	{ regex: /^instanceof\b/, tokenKind: TokenKind.Instanceof },
+	{ regex: /^int(?:eger)?\b/, tokenKind: TokenKind.Integer },
+	{ regex: /^interface\b/, tokenKind: TokenKind.Interface },
+	{ regex: /^long\b/, tokenKind: TokenKind.Long },
+	{ regex: /^native\b/, tokenKind: TokenKind.Native },
+	{ regex: /^new\b/, tokenKind: TokenKind.New },
+	{ regex: /^package\b/, tokenKind: TokenKind.Package },
+	{ regex: /^protected\b/, tokenKind: TokenKind.Protected },
+	{ regex: /^pub(?:lic)?\b/, tokenKind: TokenKind.Public },
+	{ regex: /^short\b/, tokenKind: TokenKind.Short },
+	{ regex: /^static\b/, tokenKind: TokenKind.Static },
+	{ regex: /^super\b/, tokenKind: TokenKind.Super },
+	{ regex: /^switch\b/, tokenKind: TokenKind.Switch },
+	{ regex: /^syncronized\b/, tokenKind: TokenKind.Synchronized },
+	{ regex: /^this\b/, tokenKind: TokenKind.This },
+	{ regex: /^throw\b/, tokenKind: TokenKind.Throw },
+	{ regex: /^throws\b/, tokenKind: TokenKind.Throws },
+	{ regex: /^transient\b/, tokenKind: TokenKind.Transient },
+	{ regex: /^try\b/, tokenKind: TokenKind.Try },
+	{ regex: /^typeof\b/, tokenKind: TokenKind.Typeof },
+	{ regex: /^typeis\b/, tokenKind: TokenKind.Typeis },
+	{ regex: /^var\b/, tokenKind: TokenKind.Var },
+	{ regex: /^volatile\b/, tokenKind: TokenKind.Volatile },
+	{ regex: /^yield\b/, tokenKind: TokenKind.Yield },
+	{ regex: /^extern(?:al)?\b/, tokenKind: TokenKind.External },
+	{ regex: /^ref(?:erence)?\b/, tokenKind: TokenKind.Reference },
+	{ regex: /^catch\b/, tokenKind: TokenKind.Catch },
+	{ regex: /^self\b/, tokenKind: TokenKind.Self },
+	{ regex: /^Self\b/, tokenKind: TokenKind.CapitalisedSelf },
+	{ regex: /^trait\b/, tokenKind: TokenKind.Trait },
+	{ regex: /^traits\b/, tokenKind: TokenKind.Traits },
+	{ regex: /^methods\b/, tokenKind: TokenKind.Methods },
+	{ regex: /^method\b/, tokenKind: TokenKind.Method },
+	{ regex: /^unsafe\b/, tokenKind: TokenKind.Unsafe },
+	{ regex: /^where\b/, tokenKind: TokenKind.Where },
+	{ regex: /^use\b/, tokenKind: TokenKind.Use },
+	{ regex: /^struct(?:ure)?\b/, tokenKind: TokenKind.Structure },
+	{ regex: /^become\b/, tokenKind: TokenKind.Become },
+	{ regex: /^box\b/, tokenKind: TokenKind.Box },
+	{ regex: /^boxed\b/, tokenKind: TokenKind.Boxed },
+	{ regex: /^macro\b/, tokenKind: TokenKind.Macro },
+	{ regex: /^override\b/, tokenKind: TokenKind.Override },
+	{ regex: /^unsized\b/, tokenKind: TokenKind.Unsized },
+	{ regex: /^sizeof\b/, tokenKind: TokenKind.Sizeof },
+	{ regex: /^size\b/, tokenKind: TokenKind.Size },
+	{ regex: /^virtual\b/, tokenKind: TokenKind.Virtual },
+	{ regex: /^union\b/, tokenKind: TokenKind.UnionKeyword },
+	{ regex: /^dyn(?:amic)?\b/, tokenKind: TokenKind.Dynamic },
+	{ regex: /^async\b/, tokenKind: TokenKind.Async },
+	{ regex: /^of\b/, tokenKind: TokenKind.Of },
+	{ regex: /^def(?:ine)?\b/, tokenKind: TokenKind.Define },
+	{ regex: /^namespace\b/, tokenKind: TokenKind.Namespace },
+	{ regex: /^comptime\b/, tokenKind: TokenKind.Comptime },
+	{ regex: /^from\b/, tokenKind: TokenKind.From },
+	{ regex: /^test\b/, tokenKind: TokenKind.Test },
+	{ regex: /^tests\b/, tokenKind: TokenKind.Tests },
+	{ regex: /^unless\b/, tokenKind: TokenKind.Unless },
+	{ regex: /^any\b/, tokenKind: TokenKind.Any },
+	{ regex: /^unknown\b/, tokenKind: TokenKind.Unknown },
+	{ regex: /^unique\b/, tokenKind: TokenKind.Unique },
+	{ regex: /^symbol\b/, tokenKind: TokenKind.Symbol },
+	{ regex: /^runtime\b/, tokenKind: TokenKind.Runtime },
+	{ regex: /^opaque\b/, tokenKind: TokenKind.Opaque },
+	{ regex: /^is\b/, tokenKind: TokenKind.Is },
+	{ regex: /^or\b/, tokenKind: TokenKind.Or },
+	{ regex: /^and\b/, tokenKind: TokenKind.And },
+	{ regex: /^then\b/, tokenKind: TokenKind.Then },
+	{ regex: /^assert\b/, tokenKind: TokenKind.Assert },
+	{ regex: /^number\b/, tokenKind: TokenKind.NumberKeyword },
+	{ regex: /^unsigned\b/, tokenKind: TokenKind.Unsigned },
 	{ regex: /^\+%/, tokenKind: TokenKind.WrappingAdd },
 	{ regex: /^-%/, tokenKind: TokenKind.WrappingMinus },
 	{ regex: /^\/%/, tokenKind: TokenKind.WrappingDivide },
@@ -406,9 +422,12 @@ const tokenRegexes: { regex: RegExp, tokenKind: TokenKind }[] = [
 	{ regex: /^=/, tokenKind: TokenKind.Assign },
 	{ regex: /^\?\./, tokenKind: TokenKind.OptionalChain },
 	{ regex: /^<</, tokenKind: TokenKind.ShiftLeft },
-	{ regex: /^>>/, tokenKind: TokenKind.ShiftRight },
-	{ regex: /^u([1-9]\d*)(?![$\w])/, tokenKind: TokenKind.UnsignedIntegerType },
-	{ regex: /^i([1-9]\d*)(?![$\w])/, tokenKind: TokenKind.SignedIntegerType },
+	{ regex: /^>>/, tokenKind: TokenKind.ShiftRight }
+]
+
+const dataTokenDefinitions: { regex: RegExp, tokenKind: DataTokenKinds }[] = [
+	{ regex: /^u([1-9]\d*)\b/, tokenKind: TokenKind.UnsignedIntegerType },
+	{ regex: /^i([1-9]\d*)\b/, tokenKind: TokenKind.SignedIntegerType },
 	{ regex: /^0b[01](?:_?[01])*/, tokenKind: TokenKind.BinaryNumber },
 	{ regex: /^0x[\da-fA-F](?:_?[\da-fA-F])*/, tokenKind: TokenKind.HexNumber },
 	{ regex: /^0o[0-7](?:_?[0-7])*/, tokenKind: TokenKind.OctalNumber },
@@ -424,7 +443,7 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 	let match
 
 	const createToken = (kind: TokenKind, data?: string): Token => {
-		const token: Token = { kind, data, index, line, column }
+		const token = { kind, data, index, line, column } as Token
 
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 		if (DEBUG)
@@ -435,7 +454,7 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 
 	while (index < code.length) {
 		if ((match = /^((?:(?:\/\/.*)?\r?\n)+)(\t*)/.exec(code.slice(index)))) {
-			yield createToken(TokenKind.Newline, match[2])
+			yield createToken(TokenKind.Newline, match[2]!)
 			line += match[1]!.split(``).filter(character => character == `\n`).length
 			column = (match[2]!.length * 4) + 1
 			index += match[0]!.length
@@ -445,15 +464,23 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 		} else {
 			checkSpace:
 			if (!(match = /^ +/.exec(code.slice(index)))) {
-				for (const { regex, tokenKind } of tokenRegexes) {
+				for (const { regex, tokenKind } of nonDataTokenDefinitions) {
 					if ((match = regex.exec(code.slice(index)))) {
-						yield createToken(tokenKind, match[1])
+						yield createToken(tokenKind)
 
 						break checkSpace
 					}
 				}
 
-				yield createToken(TokenKind.Error, code[index])
+				for (const { regex, tokenKind } of dataTokenDefinitions) {
+					if ((match = regex.exec(code.slice(index)))) {
+						yield createToken(tokenKind, match[1]!)
+
+						break checkSpace
+					}
+				}
+
+				yield createToken(TokenKind.Error, code[index]!)
 				column++
 				index++
 

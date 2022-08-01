@@ -5,6 +5,7 @@
 - TypeScript
 - Zig
 - Rust
+- Roc
 - CoffeeScript
 
 ## Notes

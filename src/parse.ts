@@ -97,10 +97,10 @@ export namespace Node {
 	// eslint-disable-next-line @typescript-eslint/ban-types
 	export type Expression = Function | Boolean | Object | String |
 		Identifier | Call | If | Assignment | Let | Return | Increment | SignedIntegerType | UnsignedIntegerType |
-		Float16Type | Float32Type | Float64Type | Float128Type | Null | Do | Void | FunctionType |
-		Any | MinusPrefix | While | Decrement | DeclaredImport | Import | GetMember | Null | True | False |
-		UnsignedIntegerLiteral | SignedIntegerLiteral | Float16Literal | Float32Literal | Float64Literal |
-		Float128Literal | Array | BinaryOperation | Enum
+		Float16Type | Float32Type | Float64Type | Float128Type | Null | Do | Void | FunctionType | Any | MinusPrefix |
+		While | Decrement | DeclaredImport | Import | GetMember | Null | True | False | UnsignedIntegerLiteral |
+		SignedIntegerLiteral | Float16Literal | Float32Literal | Float64Literal | Float128Literal | Array |
+		BinaryOperation | Enum
 
 	export type BinaryOperation = {
 		kind: NodeKind.Add | NodeKind.Minus | NodeKind.Divide | NodeKind.Times | NodeKind.Modulo | NodeKind.Power |
@@ -308,12 +308,6 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 		let expression = ensure(parseElement(), HERE)
 
 		while (tokens.length > state.cursor) {
-			const callArgument = parseElement()
-
-			if (callArgument) {
-
-			}
-
 			const kind = BinaryOperatorTokenToNodeKinds[tokens[state.cursor]!.kind]
 
 			if (!kind)
