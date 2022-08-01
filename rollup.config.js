@@ -3,7 +3,6 @@ import commonJS from "@rollup/plugin-commonjs"
 import json from "@rollup/plugin-json"
 import nodeResolve from "@rollup/plugin-node-resolve"
 import { readdir as readDirectory } from "fs/promises"
-import preserveShebang from "rollup-plugin-preserve-shebang"
 import packageConfig_ from "./package.json"
 
 /** @typedef {import("rollup").RollupOptions} RollupOptions */
@@ -17,8 +16,7 @@ const plugins = [
 	}),
 	commonJS(),
 	json({ preferConst: true }),
-	nodeResolve({ extensions: [ `.ts` ] }),
-	preserveShebang()
+	nodeResolve({ extensions: [ `.ts` ] })
 ]
 
 const sourceDirectory = `src`

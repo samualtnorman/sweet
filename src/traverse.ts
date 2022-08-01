@@ -1,4 +1,4 @@
-import { Node } from "./parse"
+import { Expression } from "./parse"
 
 export function* traverse(node: Node | Node[]): Generator<Node, void> {
 	if (Array.isArray(node)) {

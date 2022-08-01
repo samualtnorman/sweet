@@ -1,4 +1,4 @@
-import { Node, NodeKind } from "./parse"
+import { Expression, ExpressionKind } from "./parse"
 
 export function generateSourceCode(nodes: Node[], indentString = `\t`, indentLevel = 0): string {
 	let o = ``
@@ -13,7 +13,7 @@ export default generateSourceCode
 
 export function generateSourceFromNode(node: Node, indentString: string, indentLevel: number): string {
 	switch (node.kind) {
-		case NodeKind.Function: {
+		case ExpressionKind.Function: {
 			const parameters = node.parameters.map(node => generateSourceFromNode(node, indentString, indentLevel)).join(`, `)
 			const body = node.body.map(node => `${indentString.repeat(indentLevel + 1)}${generateSourceFromNode(node, indentString, indentLevel + 1)}\n`).join(``)
 
@@ -23,72 +23,72 @@ export function generateSourceFromNode(node: Node, indentString: string, indentL
 			return `function ${node.name}(${parameters})\n${body}`
 		}
 
-		case NodeKind.Parameter: {
+		case ExpressionKind.Parameter: {
 			if (node.type)
 				return `${generateSourceFromNode(node.binding, indentString, indentLevel)}: ${generateSourceFromNode(node.type, indentString, indentLevel)}`
 
 			return generateSourceFromNode(node.binding, indentString, indentLevel)
 		}
 
-		case NodeKind.Identifier:
+		case ExpressionKind.Identifier:
 			return node.name
 
-		case NodeKind.UnsignedIntegerType:
+		case ExpressionKind.UnsignedIntegerType:
 			return `u${node.bits}`
 
-		case NodeKind.SignedIntegerType:
+		case ExpressionKind.SignedIntegerType:
 			return `i${node.bits}`
 
-		case NodeKind.Return: {
+		case ExpressionKind.Return: {
 			if (node.expression)
 				return `return ${generateSourceFromNode(node.expression, indentString, indentLevel)}`
 
 			return `return`
 		}
 
-		case NodeKind.Add:
+		case ExpressionKind.Add:
 			return `(${generateSourceFromNode(node.left, indentString, indentLevel)} + ${generateSourceFromNode(node.right, indentString, indentLevel)})`
 
-		case NodeKind.UnsignedIntegerLiteral:
+		case ExpressionKind.UnsignedIntegerLiteral:
 			return `${node.value}u${node.bits}`
 
-		case NodeKind.To:
+		case ExpressionKind.To:
 			return `(${generateSourceFromNode(node.left, indentString, indentLevel)} to ${generateSourceFromNode(node.right, indentString, indentLevel)})`
 
-		case NodeKind.SignedIntegerLiteral:
+		case ExpressionKind.SignedIntegerLiteral:
 			return `${node.value}i${node.bits}`
 
-		case NodeKind.As:
+		case ExpressionKind.As:
 			return `(${generateSourceFromNode(node.left, indentString, indentLevel)} as ${generateSourceFromNode(node.right, indentString, indentLevel)})`
 
-		case NodeKind.Divide:
+		case ExpressionKind.Divide:
 			return `(${generateSourceFromNode(node.left, indentString, indentLevel)} / ${generateSourceFromNode(node.right, indentString, indentLevel)})`
 
-		case NodeKind.MinusPrefix:
+		case ExpressionKind.MinusPrefix:
 			return `(-${generateSourceFromNode(node.expression, indentString, indentLevel)})`
 
-		case NodeKind.Call: {
+		case ExpressionKind.Call: {
 			const arguments_ = node.arguments.map(node => generateSourceFromNode(node, indentString, indentLevel)).join(`, `)
 
 			return `${node.callable}(${arguments_})`
 		}
 
-		case NodeKind.Times:
+		case ExpressionKind.Times:
 			return `(${generateSourceFromNode(node.left, indentString, indentLevel)} * ${generateSourceFromNode(node.right, indentString, indentLevel)})`
 
-		case NodeKind.Float64Type:
+		case ExpressionKind.Float64Type:
 			return `f64`
 
-		case NodeKind.Minus:
+		case ExpressionKind.Minus:
 			return `(${generateSourceFromNode(node.left, indentString, indentLevel)} - ${generateSourceFromNode(node.right, indentString, indentLevel)})`
 
-		case NodeKind.Float64Literal:
+		case ExpressionKind.Float64Literal:
 			return `${node.value}f64`
 
-		case NodeKind.Null:
+		case ExpressionKind.Null:
 			return `null`
 
-		case NodeKind.Let: {
+		case ExpressionKind.Let: {
 			if (node.type) {
 				const type = generateSourceFromNode(node.type, indentString, indentLevel)
 
@@ -104,26 +104,26 @@ export function generateSourceFromNode(node: Node, indentString: string, indentL
 			return `let ${node.binding.name}`
 		}
 
-		case NodeKind.While: {
+		case ExpressionKind.While: {
 			return `while ${generateSourceFromNode(node.condition, indentString, indentLevel)} ${generateSourceFromNode(node.body, indentString, indentLevel)}`
 		}
 
-		case NodeKind.Do:
+		case ExpressionKind.Do:
 			return `(\n${node.body.map(node => `${indentString.repeat(indentLevel + 1)}${generateSourceFromNode(node, indentString, indentLevel + 1)}\n`).join(``)}${indentString.repeat(indentLevel)})`
 
-		case NodeKind.WrappingAdd:
+		case ExpressionKind.WrappingAdd:
 			return `(${generateSourceFromNode(node.left, indentString, indentLevel)} +% ${generateSourceFromNode(node.right, indentString, indentLevel)})`
 
-		case NodeKind.Assignment:
+		case ExpressionKind.Assignment:
 			return `${generateSourceFromNode(node.binding, indentString, indentLevel)} = ${generateSourceFromNode(node.value, indentString, indentLevel)}`
 
-		case NodeKind.Decrement:
+		case ExpressionKind.Decrement:
 			return `${generateSourceFromNode(node.binding, indentString, indentLevel)}--`
 
-		case NodeKind.NotEqual:
+		case ExpressionKind.NotEqual:
 			return `(${generateSourceFromNode(node.left, indentString, indentLevel)} != ${generateSourceFromNode(node.right, indentString, indentLevel)})`
 
 		default:
-			throw new Error(`${HERE} ${NodeKind[node.kind]}`)
+			throw new Error(`${HERE} ${ExpressionKind[node.kind]}`)
 	}
 }

@@ -1,7 +1,7 @@
 import { assert } from "@samual/lib"
 import { assertTypesAreCompatible, Context, printContext, Type, TypeKind } from "."
 import { generateSourceFromNode } from "../generateSourceCode"
-import { Node, NodeKind } from "../parse"
+import { Expression, ExpressionKind } from "../parse"
 import areTypesTheSame from "./areTypesTheSame"
 import evaluateExpressionType from "./evaluateExpressionType"
 import printType from "./printType"
@@ -9,7 +9,7 @@ import typeToExpression from "./typeToExpression"
 
 const DEBUG = false
 
-export function castExpression(expression: Node.Expression, targetType: Type, context: Context): Node.Expression {
+export function castExpression(expression: Expression.Expression, targetType: Type, context: Context): Expression.Expression {
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	if (DEBUG) {
 		console.log(`DEBUG castExpression(
@@ -20,7 +20,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 	}
 
 	switch (expression.kind) {
-		case NodeKind.UnsignedIntegerLiteral: {
+		case ExpressionKind.UnsignedIntegerLiteral: {
 			assertTypesAreCompatible({ kind: TypeKind.UnsignedInteger, bits: expression.bits }, targetType)
 
 			if (targetType.kind == TypeKind.UnsignedInteger) {
@@ -30,7 +30,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 				assert(expression.bits < targetType.bits, HERE)
 
 				return {
-					kind: NodeKind.UnsignedIntegerLiteral,
+					kind: ExpressionKind.UnsignedIntegerLiteral,
 					value: expression.value,
 					bits: targetType.bits
 				}
@@ -41,7 +41,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 				assert(expression.bits < targetType.bits, HERE)
 
 				return {
-					kind: NodeKind.SignedIntegerLiteral,
+					kind: ExpressionKind.SignedIntegerLiteral,
 					value: expression.value,
 					bits: targetType.bits
 				}
@@ -52,7 +52,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 				assert(expression.bits <= 11, HERE)
 
 				return {
-					kind: NodeKind.Float16Literal,
+					kind: ExpressionKind.Float16Literal,
 					value: Number(expression.value)
 				}
 			}
@@ -61,7 +61,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 				assert(expression.bits <= 24, HERE)
 
 				return {
-					kind: NodeKind.Float32Literal,
+					kind: ExpressionKind.Float32Literal,
 					value: Number(expression.value)
 				}
 			}
@@ -70,7 +70,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 				assert(expression.bits <= 53, HERE)
 
 				return {
-					kind: NodeKind.Float64Literal,
+					kind: ExpressionKind.Float64Literal,
 					value: Number(expression.value)
 				}
 			}
@@ -79,27 +79,27 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 			assert(expression.bits <= 113, HERE)
 
 			return {
-				kind: NodeKind.Float128Literal,
+				kind: ExpressionKind.Float128Literal,
 				value: Number(expression.value)
 			}
 		}
 
-		case NodeKind.Identifier: {
+		case ExpressionKind.Identifier: {
 			const expressionType = evaluateExpressionType(expression, context)
 
 			if (areTypesTheSame(expressionType, targetType))
-				return { kind: NodeKind.As, left: expression, right: typeToExpression(expressionType) }
+				return { kind: ExpressionKind.As, left: expression, right: typeToExpression(expressionType) }
 
 			assertTypesAreCompatible(expressionType, targetType)
 
 			return {
-				kind: NodeKind.To,
-				left: { kind: NodeKind.As, left: expression, right: typeToExpression(expressionType) },
+				kind: ExpressionKind.To,
+				left: { kind: ExpressionKind.As, left: expression, right: typeToExpression(expressionType) },
 				right: typeToExpression(targetType)
 			}
 		}
 
-		case NodeKind.Add: {
+		case ExpressionKind.Add: {
 			// if (isNodeLiteral(expression.left) && isNodeLiteral(expression.right)) {
 			// 	const expressionType = evaluateExpressionType(expression, context)
 
@@ -133,20 +133,20 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 			assertTypesAreCompatible(expressionType, targetType)
 
 			return {
-				kind: NodeKind.To,
+				kind: ExpressionKind.To,
 				left: expression,
 				right: typeToExpression(targetType)
 			}
 		}
 
-		case NodeKind.To: {
+		case ExpressionKind.To: {
 			assertTypesAreCompatible(evaluateExpressionType(expression, context), targetType)
 			expression.right = typeToExpression(targetType)
 
 			return expression
 		}
 
-		case NodeKind.SignedIntegerLiteral: {
+		case ExpressionKind.SignedIntegerLiteral: {
 			assertTypesAreCompatible({ kind: TypeKind.SignedInteger, bits: expression.bits }, targetType)
 
 			if (targetType.kind == TypeKind.SignedInteger) {
@@ -156,7 +156,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 				assert(expression.bits < targetType.bits, HERE)
 
 				return {
-					kind: NodeKind.SignedIntegerLiteral,
+					kind: ExpressionKind.SignedIntegerLiteral,
 					value: expression.value,
 					bits: targetType.bits
 				}
@@ -167,7 +167,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 				assert(expression.bits <= 11, HERE)
 
 				return {
-					kind: NodeKind.Float16Literal,
+					kind: ExpressionKind.Float16Literal,
 					value: Number(expression.value)
 				}
 			}
@@ -176,7 +176,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 				assert(expression.bits <= 24, HERE)
 
 				return {
-					kind: NodeKind.Float32Literal,
+					kind: ExpressionKind.Float32Literal,
 					value: Number(expression.value)
 				}
 			}
@@ -185,7 +185,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 				assert(expression.bits <= 53, HERE)
 
 				return {
-					kind: NodeKind.Float64Literal,
+					kind: ExpressionKind.Float64Literal,
 					value: Number(expression.value)
 				}
 			}
@@ -194,7 +194,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 			assert(expression.bits <= 113, HERE)
 
 			return {
-				kind: NodeKind.Float128Literal,
+				kind: ExpressionKind.Float128Literal,
 				value: Number(expression.value)
 			}
 		}
@@ -208,7 +208,7 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 			assertTypesAreCompatible(expressionType, targetType)
 
 			return {
-				kind: NodeKind.To,
+				kind: ExpressionKind.To,
 				left: expression,
 				right: typeToExpression(targetType)
 			}
@@ -218,6 +218,6 @@ export function castExpression(expression: Node.Expression, targetType: Type, co
 
 export default castExpression
 
-export function isNodeLiteral(node: Node): node is Node.Literal {
-	return node.kind == NodeKind.UnsignedIntegerLiteral || node.kind == NodeKind.SignedIntegerLiteral || node.kind == NodeKind.Float16Literal || node.kind == NodeKind.Float32Literal || node.kind == NodeKind.Float64Literal || node.kind == NodeKind.Float128Literal
+export function isNodeLiteral(node: Node): node is Expression.Literal {
+	return node.kind == ExpressionKind.UnsignedIntegerLiteral || node.kind == ExpressionKind.SignedIntegerLiteral || node.kind == ExpressionKind.Float16Literal || node.kind == ExpressionKind.Float32Literal || node.kind == ExpressionKind.Float64Literal || node.kind == ExpressionKind.Float128Literal
 }

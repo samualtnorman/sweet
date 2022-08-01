@@ -2,7 +2,7 @@
 import { assert } from "@samual/lib"
 import { ensure } from "@samual/lib/assert"
 import binaryen from "binaryen"
-import { Node, NodeKind } from "./parse"
+import { Expression, ExpressionKind } from "./parse"
 
 enum ReferenceKind {
 	LocalLet,
@@ -22,18 +22,18 @@ export type Context = {
 	references: Map<string, Reference>
 }
 
-export const generateWASMModule = (expressions: Node.Expression[]) => {
+export const generateWASMModule = (expressions: Expression.Expression[]) => {
 	const module = new binaryen.Module()
 
-	const generateWASMExpression = (expression: Node.Expression, context: Context): number => {
+	const generateWASMExpression = (expression: Expression.Expression, context: Context): number => {
 		switch (expression.kind) {
-			case NodeKind.Return:
+			case ExpressionKind.Return:
 				return module.return(expression.expression && generateWASMExpression(expression.expression, context))
 
-			case NodeKind.Add:
+			case ExpressionKind.Add:
 				throw new Error(`+ operator not implemented`)
 
-			case NodeKind.Identifier: {
+			case ExpressionKind.Identifier: {
 				const reference = ensure(context.references.get(expression.name), `no variable "${expression.name}"`)
 
 				switch (reference.kind) {
@@ -50,9 +50,9 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				}
 			}
 
-			case NodeKind.Let: {
+			case ExpressionKind.Let: {
 				assert(expression.type, HERE)
-				assert(expression.type.kind == NodeKind.SignedIntegerType, HERE)
+				assert(expression.type.kind == ExpressionKind.SignedIntegerType, HERE)
 				assert(expression.type.bits == 32, HERE)
 
 				const index = context.locals.push(binaryen.i32)
@@ -68,11 +68,11 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				return module.nop()
 			}
 
-			case NodeKind.UnsignedIntegerLiteral:
+			case ExpressionKind.UnsignedIntegerLiteral:
 				return module.i32.const(Number(expression.value))
 
-			case NodeKind.While: {
-				assert(expression.body.kind == NodeKind.Do, HERE)
+			case ExpressionKind.While: {
+				assert(expression.body.kind == ExpressionKind.Do, HERE)
 
 				return module.loop(
 					`loop`,
@@ -89,14 +89,14 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				)
 			}
 
-			case NodeKind.WrappingAdd: {
+			case ExpressionKind.WrappingAdd: {
 				return module.i32.add(
 					generateWASMExpression(expression.left, context),
 					generateWASMExpression(expression.right, context)
 				)
 			}
 
-			case NodeKind.Assignment: {
+			case ExpressionKind.Assignment: {
 				const reference = ensure(context.references.get(expression.binding.name), HERE)
 
 				switch (reference.kind) {
@@ -113,7 +113,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				}
 			}
 
-			case NodeKind.Decrement: {
+			case ExpressionKind.Decrement: {
 				const reference = ensure(context.references.get(expression.binding.name), HERE)
 
 				switch (reference.kind) {
@@ -143,7 +143,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				}
 			}
 
-			case NodeKind.Increment: {
+			case ExpressionKind.Increment: {
 				const reference = ensure(context.references.get(expression.binding.name), HERE)
 
 				switch (reference.kind) {
@@ -173,7 +173,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				}
 			}
 
-			case NodeKind.Function: {
+			case ExpressionKind.Function: {
 				const returnType = evaluateType(ensure(expression.returnType, HERE))
 
 				context.references.set(expression.name, { kind: ReferenceKind.Function, returnType })
@@ -207,7 +207,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				return module.nop()
 			}
 
-			case NodeKind.DeclaredFunction: {
+			case ExpressionKind.DeclaredFunction: {
 				const returnType = evaluateType(ensure(expression.returnType, HERE))
 
 				module.addFunctionImport(
@@ -226,7 +226,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				return module.nop()
 			}
 
-			case NodeKind.Call: {
+			case ExpressionKind.Call: {
 				const reference = ensure(context.references.get(expression.callable), `no function "${expression.callable}"`)
 
 				assert(reference.kind == ReferenceKind.Function, HERE)
@@ -238,7 +238,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 				)
 			}
 
-			case NodeKind.WrappingTimes: {
+			case ExpressionKind.WrappingTimes: {
 				return module.i32.mul(
 					generateWASMExpression(expression.left, context),
 					generateWASMExpression(expression.right, context)
@@ -246,7 +246,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 			}
 
 			default:
-				throw new Error(`${HERE} ${NodeKind[expression.kind]}`)
+				throw new Error(`${HERE} ${ExpressionKind[expression.kind]}`)
 		}
 	}
 
@@ -264,7 +264,7 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 			module.block(
 				null,
 				expressions.map(expression => {
-					if (expression.kind == NodeKind.Let) {
+					if (expression.kind == ExpressionKind.Let) {
 						const type = evaluateType(ensure(expression.type, HERE))
 
 						module.addGlobal(
@@ -294,19 +294,19 @@ export const generateWASMModule = (expressions: Node.Expression[]) => {
 
 export default generateWASMModule
 
-export const evaluateType = (expression: Node.Expression) => {
+export const evaluateType = (expression: Expression.Expression) => {
 	switch (expression.kind) {
-		case NodeKind.SignedIntegerType: {
+		case ExpressionKind.SignedIntegerType: {
 			assert(expression.bits == 32, HERE)
 
 			return binaryen.i32
 		}
 
-		case NodeKind.Null:
+		case ExpressionKind.Null:
 			return binaryen.none
 
 		default:
-			throw new Error(`${HERE} ${NodeKind[expression.kind]}`)
+			throw new Error(`${HERE} ${ExpressionKind[expression.kind]}`)
 	}
 }
 

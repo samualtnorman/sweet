@@ -1,11 +1,11 @@
 import { isRecord } from "@samual/lib"
-import { Node, NodeKind } from "./parse"
+import { Expression, ExpressionKind } from "./parse"
 
 export const printNode = (node: Record<string, unknown>, indentString = `\t`, indentLevel = 0): string => {
 	const { kind, ...nodeProperties } = node
 	let o = ``
 
-	o += `${typeof kind == `number` ? NodeKind[kind] : `-`}\n`
+	o += `${typeof kind == `number` ? ExpressionKind[kind] : `-`}\n`
 	indentLevel++
 
 	for (const [ name, value ] of Object.entries(nodeProperties)) {

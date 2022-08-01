@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/array-type */
 import { assert } from "@samual/lib"
-import { ensure } from "@samual/lib/assert"
 import { getIntegerLength } from "./shared"
 import { printToken, Token, TokenKind } from "./tokenise"
 
@@ -8,7 +6,7 @@ import { printToken, Token, TokenKind } from "./tokenise"
 
 const DEBUG = false
 
-export enum NodeKind {
+export enum ExpressionKind {
 	Identifier = 1,
 	Assignment,
 	Call,
@@ -92,56 +90,61 @@ export enum NodeKind {
 	Object
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
-export namespace Node {
-	// eslint-disable-next-line @typescript-eslint/ban-types
-	export type Expression = Function | Boolean | Object | String |
-		Identifier | Call | If | Assignment | Let | Return | Increment | SignedIntegerType | UnsignedIntegerType |
-		Float16Type | Float32Type | Float64Type | Float128Type | Null | Do | Void | FunctionType | Any | MinusPrefix |
-		While | Decrement | DeclaredImport | Import | GetMember | Null | True | False | UnsignedIntegerLiteral |
-		SignedIntegerLiteral | Float16Literal | Float32Literal | Float64Literal | Float128Literal | Array |
-		BinaryOperation | Enum
+export type Expression = Expression.Function | Expression.Boolean | Expression.Object | Expression.String |
+	Expression.Identifier | Expression.Call | Expression.If | Expression.Assignment | Expression.Let |
+	Expression.Return | Expression.Increment | Expression.SignedIntegerType | Expression.UnsignedIntegerType |
+	Expression.Float16Type | Expression.Float32Type | Expression.Float64Type | Expression.Float128Type |
+	Expression.Null | Expression.Do | Expression.Void | Expression.FunctionType | Expression.Any |
+	Expression.MinusPrefix | Expression.While | Expression.Decrement | Expression.DeclaredImport |
+	Expression.Import | Expression.GetMember | Expression.Null | Expression.True | Expression.False |
+	Expression.UnsignedIntegerLiteral | Expression.SignedIntegerLiteral | Expression.Float16Literal |
+	Expression.Float32Literal | Expression.Float64Literal | Expression.Float128Literal | Expression.Array |
+	Expression.BinaryOperation | Expression.Enum
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace Expression {
 	export type BinaryOperation = {
-		kind: NodeKind.Add | NodeKind.Minus | NodeKind.Divide | NodeKind.Times | NodeKind.Modulo | NodeKind.Power |
-			NodeKind.WrappingAdd | NodeKind.WrappingMinus | NodeKind.WrappingDivide | NodeKind.WrappingTimes |
-			NodeKind.WrappingPower | NodeKind.Is | NodeKind.SmallerThan | NodeKind.BiggerThan |
-			NodeKind.SmallerThanEquals | NodeKind.BiggerThanEquals | NodeKind.Equals | NodeKind.NotEquals |
-			NodeKind.ShiftLeft | NodeKind.ShiftRight | NodeKind.WrappingShiftLeft | NodeKind.BitwiseAnd |
-			NodeKind.BitwiseOr | NodeKind.Xor | NodeKind.LogicalAnd | NodeKind.LogicalOr | NodeKind.NullishCoalesce |
-			NodeKind.Union | NodeKind.Concatenate | NodeKind.To | NodeKind.As
+		kind: ExpressionKind.Add | ExpressionKind.Minus | ExpressionKind.Divide | ExpressionKind.Times |
+		ExpressionKind.Modulo | ExpressionKind.Power | ExpressionKind.WrappingAdd | ExpressionKind.WrappingMinus |
+		ExpressionKind.WrappingDivide | ExpressionKind.WrappingTimes | ExpressionKind.WrappingPower |
+		ExpressionKind.Is | ExpressionKind.SmallerThan | ExpressionKind.BiggerThan | ExpressionKind.SmallerThanEquals |
+		ExpressionKind.BiggerThanEquals | ExpressionKind.Equals | ExpressionKind.NotEquals | ExpressionKind.ShiftLeft |
+		ExpressionKind.ShiftRight | ExpressionKind.WrappingShiftLeft | ExpressionKind.BitwiseAnd |
+		ExpressionKind.BitwiseOr | ExpressionKind.Xor | ExpressionKind.LogicalAnd | ExpressionKind.LogicalOr |
+		ExpressionKind.NullishCoalesce | ExpressionKind.Union | ExpressionKind.Concatenate | ExpressionKind.To |
+		ExpressionKind.As
 
 		left: Expression
 		right: Expression
 	}
 
 	export type ImportDestructureMember = {
-		kind: NodeKind.ImportDestructureMember
+		kind: ExpressionKind.ImportDestructureMember
 		name: string
 		as: string | ImportDestructureMember[]
 	}
 
 	export type Let = {
-		kind: NodeKind.Let
+		kind: ExpressionKind.Let
 		binding: Identifier | Destructure
 		type: Expression | undefined
 		initialValue: Expression | undefined
 	}
 
 	export type Destructure = {
-		kind: NodeKind.Destructure
+		kind: ExpressionKind.Destructure
 		members: { name: string, as: Identifier | Destructure, defaultValue: Expression | undefined }[]
 	}
 
 	export type If = {
-		kind: NodeKind.If
+		kind: ExpressionKind.If
 		condition: Expression
 		truthyBranch: Expression
 		falseyBranch: Expression | undefined
 	}
 
 	export type Function = {
-		kind: NodeKind.Function
+		kind: ExpressionKind.Function
 		name: string
 		// eslint-disable-next-line @typescript-eslint/ban-types
 		parameter: Identifier | Object
@@ -151,62 +154,60 @@ export namespace Node {
 	}
 
 	export type DeclaredImport = {
-		kind: NodeKind.DeclaredImport
+		kind: ExpressionKind.DeclaredImport
 		module: string
 		members: { name: string, as: string, type: Expression }[]
 	}
 
 	export type Assignment = {
-		kind: NodeKind.Assignment
+		kind: ExpressionKind.Assignment
 		binding: Identifier | GetMember | Destructure
 		value: Expression
 	}
 
 	export type Object = {
-		kind: NodeKind.Object
+		kind: ExpressionKind.Object
 
 		entries:
 			{ name: string, type: Expression | undefined, value: Expression }[] |
 			{ name: string, type: Expression, value: undefined }[]
 	}
 
-	export type Enum = { kind: NodeKind.Enum, name: string, members: { name: string, type: Expression | undefined }[] }
-	export type Import = { kind: NodeKind.Import, path: string, as: string | ImportDestructureMember[] | undefined }
-	export type Array = { kind: NodeKind.Array, expressions: Expression[] }
-	export type Call = { kind: NodeKind.Call, callable: Expression, argument: Expression }
-	export type Return = { kind: NodeKind.Return, expression: Expression }
-	export type SignedIntegerLiteral = { kind: NodeKind.SignedIntegerLiteral, value: bigint, bits: number }
-	export type UnsignedIntegerLiteral = { kind: NodeKind.UnsignedIntegerLiteral, value: bigint, bits: number }
-	export type Float16Literal = { kind: NodeKind.Float16Literal, value: number }
-	export type Float32Literal = { kind: NodeKind.Float32Literal, value: number }
-	export type Float64Literal = { kind: NodeKind.Float64Literal, value: number }
-	export type Float128Literal = { kind: NodeKind.Float128Literal, value: number }
-	export type Increment = { kind: NodeKind.Increment, binding: Identifier | GetMember }
-	export type Decrement = { kind: NodeKind.Decrement, binding: Identifier | GetMember }
-	export type SignedIntegerType = { kind: NodeKind.SignedIntegerType, bits: number }
-	export type UnsignedIntegerType = { kind: NodeKind.UnsignedIntegerType, bits: number }
-	export type Float16Type = { kind: NodeKind.Float16Type }
-	export type Float32Type = { kind: NodeKind.Float32Type }
-	export type Float64Type = { kind: NodeKind.Float64Type }
-	export type Float128Type = { kind: NodeKind.Float128Type }
-	export type Null = { kind: NodeKind.Null }
-	export type Do = { kind: NodeKind.Do, body: Expression[] }
-	export type Void = { kind: NodeKind.Void, expression: Expression }
-	export type True = { kind: NodeKind.True }
-	export type False = { kind: NodeKind.False }
-	export type Boolean = { kind: NodeKind.Boolean }
-	export type FunctionType = { kind: NodeKind.FunctionType, argumentType: Expression, returnType: Expression }
-	export type Any = { kind: NodeKind.Any }
-	export type MinusPrefix = { kind: NodeKind.MinusPrefix, expression: Expression }
-	export type While = { kind: NodeKind.While, condition: Expression, body: Expression }
-	export type Identifier = { kind: NodeKind.Identifier, name: string }
-	export type GetMember = { kind: NodeKind.GetMember, expression: Expression, name: string }
-	export type String = { kind: NodeKind.String, value: string }
-	export type BitwiseNot = { kind: NodeKind.BitwiseNot, expression: Expression }
-	export type LogicalNot = { kind: NodeKind.LogicalNot, expression: Expression }
+	export type Enum = { kind: ExpressionKind.Enum, name: string, members: { name: string, type: Expression | undefined }[] }
+	export type Import = { kind: ExpressionKind.Import, path: string, as: string | ImportDestructureMember[] | undefined }
+	export type Array = { kind: ExpressionKind.Array, expressions: Expression[] }
+	export type Call = { kind: ExpressionKind.Call, callable: Expression, argument: Expression }
+	export type Return = { kind: ExpressionKind.Return, expression: Expression }
+	export type SignedIntegerLiteral = { kind: ExpressionKind.SignedIntegerLiteral, value: bigint, bits: number }
+	export type UnsignedIntegerLiteral = { kind: ExpressionKind.UnsignedIntegerLiteral, value: bigint, bits: number }
+	export type Float16Literal = { kind: ExpressionKind.Float16Literal, value: number }
+	export type Float32Literal = { kind: ExpressionKind.Float32Literal, value: number }
+	export type Float64Literal = { kind: ExpressionKind.Float64Literal, value: number }
+	export type Float128Literal = { kind: ExpressionKind.Float128Literal, value: number }
+	export type Increment = { kind: ExpressionKind.Increment, binding: Identifier | GetMember }
+	export type Decrement = { kind: ExpressionKind.Decrement, binding: Identifier | GetMember }
+	export type SignedIntegerType = { kind: ExpressionKind.SignedIntegerType, bits: number }
+	export type UnsignedIntegerType = { kind: ExpressionKind.UnsignedIntegerType, bits: number }
+	export type Float16Type = { kind: ExpressionKind.Float16Type }
+	export type Float32Type = { kind: ExpressionKind.Float32Type }
+	export type Float64Type = { kind: ExpressionKind.Float64Type }
+	export type Float128Type = { kind: ExpressionKind.Float128Type }
+	export type Null = { kind: ExpressionKind.Null }
+	export type Do = { kind: ExpressionKind.Do, body: Expression[] }
+	export type Void = { kind: ExpressionKind.Void, expression: Expression }
+	export type True = { kind: ExpressionKind.True }
+	export type False = { kind: ExpressionKind.False }
+	export type Boolean = { kind: ExpressionKind.Boolean }
+	export type FunctionType = { kind: ExpressionKind.FunctionType, argumentType: Expression, returnType: Expression }
+	export type Any = { kind: ExpressionKind.Any }
+	export type MinusPrefix = { kind: ExpressionKind.MinusPrefix, expression: Expression }
+	export type While = { kind: ExpressionKind.While, condition: Expression, body: Expression }
+	export type Identifier = { kind: ExpressionKind.Identifier, name: string }
+	export type GetMember = { kind: ExpressionKind.GetMember, expression: Expression, name: string }
+	export type String = { kind: ExpressionKind.String, value: string }
+	export type BitwiseNot = { kind: ExpressionKind.BitwiseNot, expression: Expression }
+	export type LogicalNot = { kind: ExpressionKind.LogicalNot, expression: Expression }
 }
-
-export type Node = Node.Expression
 
 export class ParseError extends Error {
 	constructor(
@@ -217,11 +218,11 @@ export class ParseError extends Error {
 			assert(expectedTypes.length, `expectedTypes array must not be empty`)
 
 			if (token)
-				super(`unexpected token ${TokenKind[token.kind]} at :${token.line}:${token.column}, expected ${getExpectedTypeNames(expectedTypes)}`)
+				super(`unexpected ${printToken(token)} at :${token.line}:${token.column}, expected ${getExpectedTypeNames(expectedTypes)}`)
 			else
 				super(`unexpected end, expected ${getExpectedTypeNames(expectedTypes)}`)
 		} else if (token)
-			super(`unexpected token ${TokenKind[token.kind]} at :${token.line}:${token.column}`)
+			super(`unexpected ${printToken(token)} at :${token.line}:${token.column}`)
 		else
 			super(`unexpected end`)
 	}
@@ -234,7 +235,7 @@ export class ParseError extends Error {
 const getExpectedTypeNames = (expectedTypes: TokenKind[]) =>
 	expectedTypes.map(expectedType => TokenKind[expectedType]).join(`, `)
 
-export class WrongIndentLevelParseError extends ParseError {
+export class WrongIndentLevelError extends ParseError {
 	constructor(
 		public override readonly token: Token,
 		public readonly expected: number
@@ -253,41 +254,41 @@ export const parse = (tokens: Token[]) =>
 
 export default parse
 
-export const BinaryOperatorTokenToNodeKinds: { [Key in TokenKind]?: Node.BinaryOperation[`kind`] } = {
-	[TokenKind.Add]: NodeKind.Add,
-	[TokenKind.Minus]: NodeKind.Minus,
-	[TokenKind.Divide]: NodeKind.Divide,
-	[TokenKind.Times]: NodeKind.Times,
-	[TokenKind.Modulo]: NodeKind.Modulo,
-	[TokenKind.Power]: NodeKind.Power,
-	[TokenKind.WrappingAdd]: NodeKind.WrappingAdd,
-	[TokenKind.WrappingMinus]: NodeKind.WrappingMinus,
-	[TokenKind.WrappingDivide]: NodeKind.WrappingDivide,
-	[TokenKind.WrappingTimes]: NodeKind.WrappingTimes,
-	[TokenKind.WrappingPower]: NodeKind.WrappingPower,
-	[TokenKind.Is]: NodeKind.Is,
-	[TokenKind.SmallerThan]: NodeKind.SmallerThan,
-	[TokenKind.BiggerThan]: NodeKind.BiggerThan,
-	[TokenKind.SmallerThanEquals]: NodeKind.SmallerThanEquals,
-	[TokenKind.BiggerThanEquals]: NodeKind.BiggerThanEquals,
-	[TokenKind.Equals]: NodeKind.Equals,
-	[TokenKind.NotEquals]: NodeKind.NotEquals,
-	[TokenKind.ShiftLeft]: NodeKind.ShiftLeft,
-	[TokenKind.ShiftRight]: NodeKind.ShiftRight,
-	[TokenKind.WrappingShiftLeft]: NodeKind.WrappingShiftLeft,
-	[TokenKind.BitwiseAnd]: NodeKind.BitwiseAnd,
-	[TokenKind.BitwiseOr]: NodeKind.BitwiseOr,
-	[TokenKind.Xor]: NodeKind.Xor,
-	[TokenKind.LogicalAnd]: NodeKind.LogicalAnd,
-	[TokenKind.LogicalOr]: NodeKind.LogicalOr,
-	[TokenKind.NullishCoalesce]: NodeKind.NullishCoalesce,
-	[TokenKind.Union]: NodeKind.Union,
-	[TokenKind.Concatenate]: NodeKind.Concatenate,
-	[TokenKind.To]: NodeKind.To,
-	[TokenKind.As]: NodeKind.As
+export const BinaryOperatorTokensToExpressionKinds: { [Key in TokenKind]?: Expression.BinaryOperation[`kind`] } = {
+	[TokenKind.Add]: ExpressionKind.Add,
+	[TokenKind.Minus]: ExpressionKind.Minus,
+	[TokenKind.Divide]: ExpressionKind.Divide,
+	[TokenKind.Times]: ExpressionKind.Times,
+	[TokenKind.Modulo]: ExpressionKind.Modulo,
+	[TokenKind.Power]: ExpressionKind.Power,
+	[TokenKind.WrappingAdd]: ExpressionKind.WrappingAdd,
+	[TokenKind.WrappingMinus]: ExpressionKind.WrappingMinus,
+	[TokenKind.WrappingDivide]: ExpressionKind.WrappingDivide,
+	[TokenKind.WrappingTimes]: ExpressionKind.WrappingTimes,
+	[TokenKind.WrappingPower]: ExpressionKind.WrappingPower,
+	[TokenKind.Is]: ExpressionKind.Is,
+	[TokenKind.SmallerThan]: ExpressionKind.SmallerThan,
+	[TokenKind.BiggerThan]: ExpressionKind.BiggerThan,
+	[TokenKind.SmallerThanEquals]: ExpressionKind.SmallerThanEquals,
+	[TokenKind.BiggerThanEquals]: ExpressionKind.BiggerThanEquals,
+	[TokenKind.Equals]: ExpressionKind.Equals,
+	[TokenKind.NotEquals]: ExpressionKind.NotEquals,
+	[TokenKind.ShiftLeft]: ExpressionKind.ShiftLeft,
+	[TokenKind.ShiftRight]: ExpressionKind.ShiftRight,
+	[TokenKind.WrappingShiftLeft]: ExpressionKind.WrappingShiftLeft,
+	[TokenKind.BitwiseAnd]: ExpressionKind.BitwiseAnd,
+	[TokenKind.BitwiseOr]: ExpressionKind.BitwiseOr,
+	[TokenKind.Xor]: ExpressionKind.Xor,
+	[TokenKind.LogicalAnd]: ExpressionKind.LogicalAnd,
+	[TokenKind.LogicalOr]: ExpressionKind.LogicalOr,
+	[TokenKind.NullishCoalesce]: ExpressionKind.NullishCoalesce,
+	[TokenKind.Union]: ExpressionKind.Union,
+	[TokenKind.Concatenate]: ExpressionKind.Concatenate,
+	[TokenKind.To]: ExpressionKind.To,
+	[TokenKind.As]: ExpressionKind.As
 }
 
-export const parseExpressions = function* (tokens: Token[], indentLevel: number, state: { cursor: number }): Generator<Node.Expression, void> {
+export const parseExpressions = function* (tokens: Token[], indentLevel: number, state: { cursor: number }): Generator<Expression, void> {
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	if (DEBUG) {
 		for (const token of tokens.slice(state.cursor))
@@ -296,7 +297,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 		console.log(`DEBUG parseExpressions() ---`)
 	}
 
-	const parseExpression = (): Node.Expression => {
+	const parseExpression = (): Expression => {
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 		if (DEBUG) {
 			for (const token of tokens.slice(state.cursor))
@@ -305,22 +306,24 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			console.log(`DEBUG parseExpression() ---`)
 		}
 
-		let expression = ensure(parseElement(), HERE)
+		let expression = parseElement()
 
 		while (tokens.length > state.cursor) {
-			const kind = BinaryOperatorTokenToNodeKinds[tokens[state.cursor]!.kind]
+			const kind = BinaryOperatorTokensToExpressionKinds[tokens[state.cursor]!.kind]
 
-			if (!kind)
-				return expression
-
-			state.cursor++
-			expression = { kind, left: expression, right: ensure(parseElement(), HERE) }
+			if (kind) {
+				state.cursor++
+				expression = { kind, left: expression, right: parseElement() }
+			} else if (tokens[state.cursor]!.kind == TokenKind.Newline)
+				break
+			else
+				expression = { kind: ExpressionKind.Call, callable: expression, argument: parseExpression() }
 		}
 
 		return expression
 	}
 
-	const parseElement = (): Node.Expression | undefined => {
+	const parseElement = (): Expression => {
 		if (tokens.length == state.cursor)
 			throw new ParseError(undefined)
 
@@ -328,48 +331,22 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 
 		// eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
 		switch (tokens[state.cursor - 1]!.kind) {
-			case TokenKind.While: {
-				let condition: Node.Expression
-				let body: Node.Expression
-
-				if (nextTokenIs(TokenKind.OpenBracket)) {
-					condition = parseExpression()
-
-					if (nextTokenIs(TokenKind.Newline)) {
-						expectNewline()
-						body = { kind: NodeKind.Do, body: [ ...parseExpressions(tokens, indentLevel + 1, state) ] }
-					} else
-						body = parseExpression()
-				} else {
-					condition = parseExpression()
-
-					if (nextTokenIs(TokenKind.OpenBracket))
-						body = parseExpression()
-					else {
-						expectNewline()
-						body = { kind: NodeKind.Do, body: [ ...parseExpressions(tokens, indentLevel + 1, state) ] }
-					}
-				}
-
-				return { kind: NodeKind.While, condition, body }
-			}
-
 			case TokenKind.Null:
-				return { kind: NodeKind.Null }
+				return { kind: ExpressionKind.Null }
 
 			case TokenKind.Void:
-				return { kind: NodeKind.Void, expression: parseExpression() }
+				return { kind: ExpressionKind.Void, expression: parseExpression() }
 
 			case TokenKind.Return: {
 				if (nextTokenIs(TokenKind.Newline))
-					return { kind: NodeKind.Return, expression: { kind: NodeKind.Null } }
+					return { kind: ExpressionKind.Return, expression: { kind: ExpressionKind.Null } }
 
-				return { kind: NodeKind.Return, expression: parseExpression() }
+				return { kind: ExpressionKind.Return, expression: parseExpression() }
 			}
 
 			case TokenKind.Let: {
-				const binding: Node.Identifier = {
-					kind: NodeKind.Identifier,
+				const binding: Expression.Identifier = {
+					kind: ExpressionKind.Identifier,
 					name: expectToken(TokenKind.Identifier).data!
 				}
 
@@ -387,7 +364,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					initialValue = parseExpression()
 				}
 
-				return { kind: NodeKind.Let, binding, type, initialValue }
+				return { kind: ExpressionKind.Let, binding, type, initialValue }
 			}
 
 			case TokenKind.Identifier: {
@@ -397,8 +374,8 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					state.cursor++
 
 					return {
-						kind: NodeKind.Assignment,
-						binding: { kind: NodeKind.Identifier, name },
+						kind: ExpressionKind.Assignment,
+						binding: { kind: ExpressionKind.Identifier, name },
 						value: parseExpression()
 					}
 				}
@@ -407,8 +384,8 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					state.cursor++
 
 					return {
-						kind: NodeKind.Increment,
-						binding: { kind: NodeKind.Identifier, name }
+						kind: ExpressionKind.Increment,
+						binding: { kind: ExpressionKind.Identifier, name }
 					}
 				}
 
@@ -416,12 +393,12 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					state.cursor++
 
 					return {
-						kind: NodeKind.Decrement,
-						binding: { kind: NodeKind.Identifier, name }
+						kind: ExpressionKind.Decrement,
+						binding: { kind: ExpressionKind.Identifier, name }
 					}
 				}
 
-				return { kind: NodeKind.Identifier, name }
+				return { kind: ExpressionKind.Identifier, name }
 			}
 
 			case TokenKind.Number: {
@@ -432,7 +409,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 						state.cursor++
 
 						return {
-							kind: NodeKind.Float16Literal,
+							kind: ExpressionKind.Float16Literal,
 							value: Number(numberString)
 						}
 					}
@@ -441,7 +418,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 						state.cursor++
 
 						return {
-							kind: NodeKind.Float32Literal,
+							kind: ExpressionKind.Float32Literal,
 							value: Number(numberString)
 						}
 					}
@@ -450,7 +427,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 						state.cursor++
 
 						return {
-							kind: NodeKind.Float64Literal,
+							kind: ExpressionKind.Float64Literal,
 							value: Number(numberString)
 						}
 					}
@@ -459,13 +436,13 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 						state.cursor++
 
 						return {
-							kind: NodeKind.Float128Literal,
+							kind: ExpressionKind.Float128Literal,
 							value: Number(numberString)
 						}
 					}
 
 					return {
-						kind: NodeKind.Float64Literal,
+						kind: ExpressionKind.Float64Literal,
 						value: Number(numberString)
 					}
 				}
@@ -476,7 +453,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					state.cursor++
 
 					return {
-						kind: NodeKind.UnsignedIntegerLiteral,
+						kind: ExpressionKind.UnsignedIntegerLiteral,
 						value: BigInt(numberString),
 						bits
 					}
@@ -488,7 +465,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					state.cursor++
 
 					return {
-						kind: NodeKind.SignedIntegerLiteral,
+						kind: ExpressionKind.SignedIntegerLiteral,
 						value: BigInt(numberString),
 						bits
 					}
@@ -498,7 +475,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					state.cursor++
 
 					return {
-						kind: NodeKind.Float16Literal,
+						kind: ExpressionKind.Float16Literal,
 						value: Number(numberString)
 					}
 				}
@@ -507,7 +484,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					state.cursor++
 
 					return {
-						kind: NodeKind.Float32Literal,
+						kind: ExpressionKind.Float32Literal,
 						value: Number(numberString)
 					}
 				}
@@ -516,7 +493,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					state.cursor++
 
 					return {
-						kind: NodeKind.Float64Literal,
+						kind: ExpressionKind.Float64Literal,
 						value: Number(numberString)
 					}
 				}
@@ -525,7 +502,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					state.cursor++
 
 					return {
-						kind: NodeKind.Float128Literal,
+						kind: ExpressionKind.Float128Literal,
 						value: Number(numberString)
 					}
 				}
@@ -533,121 +510,33 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 				const value = BigInt(numberString)
 
 				return {
-					kind: NodeKind.UnsignedIntegerLiteral,
+					kind: ExpressionKind.UnsignedIntegerLiteral,
 					value,
 					bits: getIntegerLength(value)
 				}
 			}
 
-			// case TokenKind.OpenBracket: {
-			// 	let element: Node.Expression
-
-			// 	if (nextTokenIs(TokenKind.Newline)) {
-			// 		expectNewline()
-			// 		element = { kind: NodeKind.Block, body: [ ...parseExpressions(tokens, indentLevel + 1, state) ] }
-			// 		expectNewline(indentLevel)
-			// 	} else
-			// 		element = parseExpression()
-
-			// 	expectToken(TokenKind.CloseBracket)
-
-			// 	return element
-			// }
-
-			// case TokenKind.If: {
-			// 	let condition: Node.Expression
-			// 	let truthyBranch: Node.Expression
-
-			// 	if (nextTokenIs(TokenKind.OpenBracket)) {
-			// 		state.cursor++
-			// 		condition = parseExpression()
-
-			// 		if (nextTokenIs(TokenKind.Newline)) {
-			// 			const newline = tokens[state.cursor]!
-
-			// 			if (newline.data!.length != indentLevel)
-			// 				throw new WrongIndentLevelParseError(newline, indentLevel)
-
-			// 			state.cursor++
-			// 		}
-
-			// 		expectToken(TokenKind.CloseBracket)
-
-			// 		if (nextTokenIs(TokenKind.Newline)) {
-			// 			expectNewline()
-			// 			truthyBranch = { kind: NodeKind.Block, body: [ ...parseExpressions(tokens, indentLevel + 1, state) ] }
-			// 		} else
-			// 			truthyBranch = parseExpression()
-			// 	} else {
-			// 		condition = parseExpression()
-
-			// 		if (nextTokenIs(TokenKind.OpenBracket))
-			// 			truthyBranch = parseExpression()
-			// 		else {
-			// 			expectNewline()
-			// 			truthyBranch = { kind: NodeKind.Block, body: [ ...parseExpressions(tokens, indentLevel + 1, state) ] }
-			// 		}
-			// 	}
-
-			// 	if (nextTokenIs(TokenKind.Newline, TokenKind.Else)) {
-			// 		const newline = tokens[state.cursor]!
-
-			// 		if (newline.data!.length != indentLevel)
-			// 			throw new WrongIndentLevelParseError(newline, indentLevel)
-
-			// 		state.cursor++
-			// 	}
-
-			// 	let falseyBranch: Node.Expression | undefined
-
-			// 	if (nextTokenIs(TokenKind.Else)) {
-			// 		state.cursor++
-
-			// 		if (nextTokenIs(TokenKind.Newline)) {
-			// 			expectNewline()
-			// 			falseyBranch = { kind: NodeKind.Block, body: [ ...parseExpressions(tokens, indentLevel + 1, state) ] }
-			// 		} else
-			// 			falseyBranch = parseExpression()
-			// 	}
-
-			// 	return {
-			// 		kind: NodeKind.If,
-			// 		condition,
-			// 		truthyBranch,
-			// 		falseyBranch
-			// 	}
-			// }
-
-			// case TokenKind.Minus: {
-			// 	const expression = ensure(parseElement(), HERE)
-
-			// 	if (expression.kind == NodeKind.UnsignedIntegerLiteral)
-			// 		return { kind: NodeKind.SignedIntegerLiteral, value: -expression.value, bits: expression.bits + 1 }
-
-			// 	return { kind: NodeKind.MinusPrefix, expression }
-			// }
-
 			case TokenKind.Float16Type:
-				return { kind: NodeKind.Float16Type }
+				return { kind: ExpressionKind.Float16Type }
 
 			case TokenKind.Float32Type:
-				return { kind: NodeKind.Float32Type }
+				return { kind: ExpressionKind.Float32Type }
 
 			case TokenKind.Float64Type:
-				return { kind: NodeKind.Float64Type }
+				return { kind: ExpressionKind.Float64Type }
 
 			case TokenKind.Float128Type:
-				return { kind: NodeKind.Float128Type }
+				return { kind: ExpressionKind.Float128Type }
 
 			case TokenKind.UnsignedIntegerType:
-				return { kind: NodeKind.UnsignedIntegerType, bits: Number(tokens[state.cursor - 1]!.data!) }
+				return { kind: ExpressionKind.UnsignedIntegerType, bits: Number(tokens[state.cursor - 1]!.data!) }
 
 			case TokenKind.SignedIntegerType:
-				return { kind: NodeKind.SignedIntegerType, bits: Number(tokens[state.cursor - 1]!.data!) }
+				return { kind: ExpressionKind.SignedIntegerType, bits: Number(tokens[state.cursor - 1]!.data!) }
 
 			case TokenKind.Enum: {
-				const enumNode: Node.Enum = {
-					kind: NodeKind.Enum,
+				const enum_: Expression.Enum = {
+					kind: ExpressionKind.Enum,
 					name: expectToken(TokenKind.Identifier).data!,
 					members: []
 				}
@@ -664,7 +553,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 						type = parseExpression()
 					}
 
-					enumNode.members.push({ name, type })
+					enum_.members.push({ name, type })
 
 					const newline = expectToken(TokenKind.Newline)
 
@@ -672,135 +561,23 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 						break
 
 					if (newline.data!.length != indentLevel)
-						throw new WrongIndentLevelParseError(newline, indentLevel)
+						throw new WrongIndentLevelError(newline, indentLevel)
 				}
 
 				indentLevel--
 
-				return enumNode
+				return enum_
 			}
 		}
 
-		return undefined
-
-		// if (nextTokenIs(TokenKind.DeclareFunction)) {
-		// 	const name = tokens[state.cursor]!.data!
-		// 	const parameters: Node.Parameter[] = []
-
-		// 	state.cursor++
-
-		// 	if (!nextTokenIs(TokenKind.CloseBracket)) {
-		// 		while (true) {
-		// 			const identifier = expectToken(TokenKind.Identifier)
-
-		// 			expectToken(TokenKind.Colon)
-
-		// 			parameters.push({
-		// 				kind: NodeKind.Parameter,
-		// 				binding: { kind: NodeKind.Identifier, name: identifier.data! },
-		// 				type: parseExpression()
-		// 			})
-
-		// 			if (nextTokenIs(TokenKind.CloseBracket))
-		// 				break
-
-		// 			expectToken(TokenKind.Comma)
-		// 		}
-		// 	}
-
-		// 	state.cursor++
-
-		// 	let returnType
-
-		// 	if (nextTokenIs(TokenKind.Colon)) {
-		// 		state.cursor++
-		// 		returnType = parseExpression()
-		// 	} else if (!nextTokenIs(TokenKind.Newline))
-		// 		returnType = parseExpression()
-
-		// 	return { kind: NodeKind.DeclaredFunction, name, parameters, returnType }
-		// }
-
-		// if (nextTokenIs(TokenKind.Constant)) {
-		// 	state.cursor++
-
-		// 	const binding: Node.Identifier = {
-		// 		kind: NodeKind.Identifier,
-		// 		name: expectToken(TokenKind.Identifier).data!
-		// 	}
-
-		// 	let type
-
-		// 	if (nextTokenIs(TokenKind.Colon)) {
-		// 		state.cursor++
-		// 		type = parseExpression()
-		// 	}
-
-		// 	expectToken(TokenKind.Assign)
-
-		// 	return {
-		// 		kind: NodeKind.ConstantDeclaration,
-		// 		binding,
-		// 		type,
-		// 		value: parseExpression()
-		// 	}
-		// }
-
-		// if (nextTokenIs(TokenKind.Function)) {
-		// 	const name = tokens[state.cursor]!.data!
-
-		// 	state.cursor++
-
-		// 	const parameter = parseExpression()
-
-		// 	// if (parameter.kind != NodeKind.Identifier && parameter.kind != NodeKind.Object)
-
-		// 	if (!nextTokenIs(TokenKind.CloseBracket)) {
-		// 		while (true) {
-		// 			const identifier = expectToken(TokenKind.Identifier)
-
-		// 			expectToken(TokenKind.Colon)
-
-		// 			parameters.push({
-		// 				kind: NodeKind.Parameter,
-		// 				binding: { kind: NodeKind.Identifier, name: identifier.data! },
-		// 				type: parseExpression()
-		// 			})
-
-		// 			if (nextTokenIs(TokenKind.CloseBracket))
-		// 				break
-
-		// 			expectToken(TokenKind.Comma)
-		// 		}
-		// 	}
-
-		// 	state.cursor++
-
-		// 	let returnType
-
-		// 	if (nextTokenIs(TokenKind.Colon)) {
-		// 		state.cursor++
-		// 		returnType = parseExpression()
-		// 	} else if (!nextTokenIs(TokenKind.Newline))
-		// 		returnType = parseExpression()
-
-		// 	expectNewline()
-
-		// 	return {
-		// 		kind: NodeKind.Function,
-		// 		name,
-		// 		parameters,
-		// 		returnType,
-		// 		body: [ ...parseExpressions(tokens, indentLevel + 1, state) ]
-		// 	}
-		// }
+		throw new ParseError(tokens[state.cursor - 1])
 	}
 
 	const expectNewline = () => {
 		const newline = expectToken(TokenKind.Newline)
 
 		if (newline.data!.length != indentLevel)
-			throw new WrongIndentLevelParseError(newline, indentLevel)
+			throw new WrongIndentLevelError(newline, indentLevel)
 	}
 
 	const expectToken = (expectedType: TokenKind) => {
@@ -841,7 +618,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			return
 
 		if (newline.data!.length != indentLevel)
-			throw new WrongIndentLevelParseError(newline, indentLevel)
+			throw new WrongIndentLevelError(newline, indentLevel)
 
 		state.cursor++
 

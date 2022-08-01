@@ -210,7 +210,8 @@ export enum TokenKind {
 	Then,
 	Assert,
 	NumberKeyword,
-	Unsigned
+	Unsigned,
+	Defer
 }
 
 type DataTokenKinds = TokenKind.UnsignedIntegerType | TokenKind.SignedIntegerType | TokenKind.BinaryNumber |
@@ -225,7 +226,7 @@ export type Token = {
 	column: number
 } | { kind: DataTokenKinds, data: string, index: number, line: number, column: number }
 
-const nonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenKind, DataTokenKinds> }[] = [
+export const NonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenKind, DataTokenKinds> }[] = [
 	{ regex: /^while\b/, tokenKind: TokenKind.While },
 	{ regex: /^boolean\b/, tokenKind: TokenKind.Boolean },
 	{ regex: /^false\b/, tokenKind: TokenKind.False },
@@ -355,6 +356,7 @@ const nonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenKind, Da
 	{ regex: /^assert\b/, tokenKind: TokenKind.Assert },
 	{ regex: /^number\b/, tokenKind: TokenKind.NumberKeyword },
 	{ regex: /^unsigned\b/, tokenKind: TokenKind.Unsigned },
+	{ regex: /^defer\b/, tokenKind: TokenKind.Defer },
 	{ regex: /^\+%/, tokenKind: TokenKind.WrappingAdd },
 	{ regex: /^-%/, tokenKind: TokenKind.WrappingMinus },
 	{ regex: /^\/%/, tokenKind: TokenKind.WrappingDivide },
@@ -425,13 +427,13 @@ const nonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenKind, Da
 	{ regex: /^>>/, tokenKind: TokenKind.ShiftRight }
 ]
 
-const dataTokenDefinitions: { regex: RegExp, tokenKind: DataTokenKinds }[] = [
+export const DataTokenDefinitions: { regex: RegExp, tokenKind: DataTokenKinds }[] = [
 	{ regex: /^u([1-9]\d*)\b/, tokenKind: TokenKind.UnsignedIntegerType },
 	{ regex: /^i([1-9]\d*)\b/, tokenKind: TokenKind.SignedIntegerType },
 	{ regex: /^0b[01](?:_?[01])*/, tokenKind: TokenKind.BinaryNumber },
 	{ regex: /^0x[\da-fA-F](?:_?[\da-fA-F])*/, tokenKind: TokenKind.HexNumber },
 	{ regex: /^0o[0-7](?:_?[0-7])*/, tokenKind: TokenKind.OctalNumber },
-	{ regex: /^\d(?:_?\d)*(?:\.\d(?:_?\d)*)?/, tokenKind: TokenKind.Number },
+	{ regex: /^(\d(?:_?\d)*(?:\.\d(?:_?\d)*)?)/, tokenKind: TokenKind.Number },
 	{ regex: /^"((?:\\"|[^"])+)"/, tokenKind: TokenKind.String },
 	{ regex: /^([a-zA-Z_]\w*)/, tokenKind: TokenKind.Identifier }
 ]
@@ -464,7 +466,7 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 		} else {
 			checkSpace:
 			if (!(match = /^ +/.exec(code.slice(index)))) {
-				for (const { regex, tokenKind } of nonDataTokenDefinitions) {
+				for (const { regex, tokenKind } of NonDataTokenDefinitions) {
 					if ((match = regex.exec(code.slice(index)))) {
 						yield createToken(tokenKind)
 
@@ -472,7 +474,7 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 					}
 				}
 
-				for (const { regex, tokenKind } of dataTokenDefinitions) {
+				for (const { regex, tokenKind } of DataTokenDefinitions) {
 					if ((match = regex.exec(code.slice(index)))) {
 						yield createToken(tokenKind, match[1]!)
 

@@ -1,30 +1,30 @@
 import { Context, Type, TypeKind } from "."
-import { Node, NodeKind } from "../parse"
+import { Expression, ExpressionKind } from "../parse"
 
 export function evaluateExpression(expression: Node, context: Context): Type {
 	switch (expression.kind) {
-		case NodeKind.SignedIntegerType:
+		case ExpressionKind.SignedIntegerType:
 			return { kind: TypeKind.SignedInteger, bits: expression.bits }
 
-		case NodeKind.UnsignedIntegerType:
+		case ExpressionKind.UnsignedIntegerType:
 			return { kind: TypeKind.UnsignedInteger, bits: expression.bits }
 
-		case NodeKind.Float16Type:
+		case ExpressionKind.Float16Type:
 			return { kind: TypeKind.Float16 }
 
-		case NodeKind.Float32Type:
+		case ExpressionKind.Float32Type:
 			return { kind: TypeKind.Float32 }
 
-		case NodeKind.Float64Type:
+		case ExpressionKind.Float64Type:
 			return { kind: TypeKind.Float64 }
 
-		case NodeKind.Float128Type:
+		case ExpressionKind.Float128Type:
 			return { kind: TypeKind.Float128 }
 
-		case NodeKind.Null:
+		case ExpressionKind.Null:
 			return { kind: TypeKind.Null }
 
-		case NodeKind.Or: {
+		case ExpressionKind.Or: {
 			const leftEvaluated = evaluateExpression(expression.left, context)
 			const rightEvaluated = evaluateExpression(expression.right, context)
 
@@ -53,7 +53,7 @@ export function evaluateExpression(expression: Node, context: Context): Type {
 		}
 
 		default:
-			throw new Error(`${HERE} ${NodeKind[expression.kind]}`)
+			throw new Error(`${HERE} ${ExpressionKind[expression.kind]}`)
 	}
 }
 

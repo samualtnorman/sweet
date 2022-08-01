@@ -4,13 +4,16 @@ import chalk from "chalk"
 import { ParseError } from "./dist/parse.js"
 import { printNodes } from "./dist/printNode.js"
 
-(await readDirectory(`test`)).sort().map(async testFileName => {
+(await readDirectory(`test`)).map(async testFileName => {
 	const testPath = `test/${testFileName}`
 	let nodes
 
 	try {
 		const sourceCode = await readFile(testPath, { encoding: `utf-8` })
 		const tokens = [ ...tokenise(sourceCode) ]
+
+		if (testFileName == `call.sw`)
+			debugger
 
 		nodes = [ ...parse(tokens) ]
 	} catch (error) {

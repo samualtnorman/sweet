@@ -1,7 +1,7 @@
 import { assert } from "@samual/lib"
 import { assertTypesAreCompatible, Context, printContext, Type, TypeKind } from "."
 import { generateSourceFromNode } from "../generateSourceCode"
-import { Node, NodeKind } from "../parse"
+import { Expression, ExpressionKind } from "../parse"
 import castExpression from "./castExpression"
 import evaluateExpression from "./evaluateExpression"
 import passExpressions from "./passExpressions"
@@ -9,7 +9,7 @@ import resolveTypes from "./resolveTypes"
 
 const DEBUG = false
 
-export function evaluateExpressionType(expression: Node.Expression, context: Context): Type {
+export function evaluateExpressionType(expression: Expression.Expression, context: Context): Type {
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	if (DEBUG) {
 		console.log(`DEBUG evaluateExpressionType(
@@ -19,7 +19,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 	}
 
 	switch (expression.kind) {
-		case NodeKind.Function: {
+		case ExpressionKind.Function: {
 			assert(!context.variables.has(expression.name), `redeclaration of ${expression.name}()`)
 
 			const parameters = []
@@ -48,9 +48,9 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return { kind: TypeKind.Null }
 		}
 
-		case NodeKind.Return: {
+		case ExpressionKind.Return: {
 			expression.expression = castExpression(
-				expression.expression || { kind: NodeKind.Null },
+				expression.expression || { kind: ExpressionKind.Null },
 				context.returnType,
 				context
 			)
@@ -58,7 +58,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return { kind: TypeKind.Null }
 		}
 
-		case NodeKind.Identifier: {
+		case ExpressionKind.Identifier: {
 			assert(context.variables.has(expression.name), `undeclared variable "${expression.name}"`)
 
 			const variable = context.variables.get(expression.name)!
@@ -68,19 +68,19 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return variable.type
 		}
 
-		case NodeKind.Null:
+		case ExpressionKind.Null:
 			return { kind: TypeKind.Null }
 
-		case NodeKind.UnsignedIntegerLiteral:
+		case ExpressionKind.UnsignedIntegerLiteral:
 			return { kind: TypeKind.UnsignedInteger, bits: expression.bits }
 
-		case NodeKind.Void: {
+		case ExpressionKind.Void: {
 			evaluateExpressionType(expression.expression, context)
 
 			return { kind: TypeKind.Null }
 		}
 
-		case NodeKind.Add: {
+		case ExpressionKind.Add: {
 			const resolvedType = resolveTypes(
 				evaluateExpressionType(expression.left, context),
 				evaluateExpressionType(expression.right, context)
@@ -95,8 +95,8 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return resolvedType
 		}
 
-		case NodeKind.To:
-		case NodeKind.As: {
+		case ExpressionKind.To:
+		case ExpressionKind.As: {
 			const castType = evaluateExpression(expression.right, context)
 
 			assertTypesAreCompatible(evaluateExpressionType(expression.left, context), castType)
@@ -104,7 +104,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return castType
 		}
 
-		case NodeKind.Divide: {
+		case ExpressionKind.Divide: {
 			const resolvedType = resolveTypes(
 				evaluateExpressionType(expression.left, context),
 				evaluateExpressionType(expression.right, context)
@@ -116,7 +116,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return resolvedType
 		}
 
-		case NodeKind.MinusPrefix: {
+		case ExpressionKind.MinusPrefix: {
 			const type = evaluateExpressionType(expression.expression, context)
 
 			expression.expression = castExpression(expression.expression, type, context)
@@ -124,7 +124,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return type
 		}
 
-		case NodeKind.Call: {
+		case ExpressionKind.Call: {
 			assert(context.variables.has(expression.callable), `undeclared function "${expression.callable}"`)
 
 			const variable = context.variables.get(expression.callable)!
@@ -139,7 +139,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return variable.type.returnType
 		}
 
-		case NodeKind.Times: {
+		case ExpressionKind.Times: {
 			const resolvedType = resolveTypes(
 				evaluateExpressionType(expression.left, context),
 				evaluateExpressionType(expression.right, context)
@@ -154,10 +154,10 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return resolvedType
 		}
 
-		case NodeKind.SignedIntegerLiteral:
+		case ExpressionKind.SignedIntegerLiteral:
 			return { kind: TypeKind.SignedInteger, bits: expression.bits }
 
-		case NodeKind.Minus: {
+		case ExpressionKind.Minus: {
 			const resolvedType = resolveTypes(
 				evaluateExpressionType(expression.left, context),
 				evaluateExpressionType(expression.right, context)
@@ -169,10 +169,10 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return resolvedType
 		}
 
-		case NodeKind.Float64Literal:
+		case ExpressionKind.Float64Literal:
 			return { kind: TypeKind.Float64 }
 
-		case NodeKind.Let: {
+		case ExpressionKind.Let: {
 			assert(expression.type, HERE)
 			assert(expression.initialValue, HERE)
 
@@ -184,16 +184,16 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return { kind: TypeKind.Null }
 		}
 
-		case NodeKind.While: {
+		case ExpressionKind.While: {
 			// { kind: TypeKind.Union, members: [ { kind: TypeKind.True }, { kind: TypeKind.False } ] }
 
 			const conditionType = evaluateExpressionType(expression.condition, context)
 
 			if (conditionType.kind == TypeKind.UnsignedInteger) {
 				expression.condition = {
-					kind: NodeKind.NotEqual,
+					kind: ExpressionKind.NotEqual,
 					left: expression.condition,
-					right: { kind: NodeKind.UnsignedIntegerLiteral, value: 0n, bits: conditionType.bits }
+					right: { kind: ExpressionKind.UnsignedIntegerLiteral, value: 0n, bits: conditionType.bits }
 				}
 			}
 
@@ -202,13 +202,13 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return evaluateExpressionType(expression.body, context)
 		}
 
-		case NodeKind.Do: {
+		case ExpressionKind.Do: {
 			passExpressions(expression.body, context)
 
 			return { kind: TypeKind.Null }
 		}
 
-		case NodeKind.WrappingAdd: {
+		case ExpressionKind.WrappingAdd: {
 			const resolvedType = resolveTypes(
 				evaluateExpressionType(expression.left, context),
 				evaluateExpressionType(expression.right, context)
@@ -220,7 +220,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return resolvedType
 		}
 
-		case NodeKind.Assignment: {
+		case ExpressionKind.Assignment: {
 			assert(context.variables.has(expression.binding.name), HERE)
 
 			const variable = context.variables.get(expression.binding.name)!
@@ -231,7 +231,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 			return { kind: TypeKind.Null }
 		}
 
-		case NodeKind.Decrement: {
+		case ExpressionKind.Decrement: {
 			return { kind: TypeKind.Null }
 		}
 
@@ -240,7 +240,7 @@ export function evaluateExpressionType(expression: Node.Expression, context: Con
 		// }
 
 		default:
-			throw new Error(`${HERE} ${NodeKind[expression.kind]}`)
+			throw new Error(`${HERE} ${ExpressionKind[expression.kind]}`)
 	}
 }
 

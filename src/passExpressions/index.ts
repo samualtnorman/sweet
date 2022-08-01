@@ -8,7 +8,7 @@ export { resolveTypes } from "./resolveTypes"
 export { typeToExpression } from "./typeToExpression"
 
 import { assert } from "@samual/lib"
-import { Node } from "../parse"
+import { Expression } from "../parse"
 import areTypesCompatible from "./areTypesCompatible"
 import passExpressions_ from "./passExpressions"
 import printType from "./printType"
@@ -61,7 +61,7 @@ export type Context = {
 	returnedTypes: Type[]
 })
 
-export function passExpressions(expressions: Node.Expression[]): void {
+export function passExpressions(expressions: Expression.Expression[]): void {
 	passExpressions_(expressions, createContext())
 }
 
