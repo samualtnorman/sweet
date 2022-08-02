@@ -211,7 +211,14 @@ export enum TokenKind {
 	Assert,
 	NumberKeyword,
 	Unsigned,
-	Defer
+	Defer,
+	Unreachable,
+	Never,
+	NoReturn,
+	ErrorDefer,
+	Clean,
+	ErrorClean,
+	NoClean
 }
 
 export type DataTokenKinds = TokenKind.UnsignedIntegerType | TokenKind.SignedIntegerType | TokenKind.BinaryNumber |
@@ -360,6 +367,13 @@ export const NonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenK
 	{ regex: /^number\b/, tokenKind: TokenKind.NumberKeyword },
 	{ regex: /^unsigned\b/, tokenKind: TokenKind.Unsigned },
 	{ regex: /^defer\b/, tokenKind: TokenKind.Defer },
+	{ regex: /^unreachable\b/, tokenKind: TokenKind.Unreachable },
+	{ regex: /^never\b/, tokenKind: TokenKind.Never },
+	{ regex: /^noreturn\b/, tokenKind: TokenKind.NoReturn },
+	{ regex: /^err(?:or)?defer\b/, tokenKind: TokenKind.ErrorDefer },
+	{ regex: /^clean\b/, tokenKind: TokenKind.Clean },
+	{ regex: /^err(?:or)?clean\b/, tokenKind: TokenKind.ErrorClean },
+	{ regex: /^noclean\b/, tokenKind: TokenKind.NoClean },
 	{ regex: /^\+%/, tokenKind: TokenKind.WrappingAdd },
 	{ regex: /^-%/, tokenKind: TokenKind.WrappingMinus },
 	{ regex: /^\/%/, tokenKind: TokenKind.WrappingDivide },

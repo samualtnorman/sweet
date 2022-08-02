@@ -1,12 +1,12 @@
 # Sweet
 
 ## Influences
-- JavaScript/TypeScript
-- Zig
-- Lua
-- Rust
-- Roc
-- CoffeeScript
+- [JavaScript](https://developer.mozilla.org/en-US/docs/Web/javascript)/[TypeScript](https://www.typescriptlang.org/)
+- [Zig](https://ziglang.org/)
+- [Lua](https://www.lua.org/)
+- [Rust](https://www.rust-lang.org/)
+- [Roc](https://www.roc-lang.org/)
+- [CoffeeScript](https://coffeescript.org/)
 
 ## Notes
 
@@ -17,11 +17,12 @@ if condition
 	body
 ```
 
-is syntactic sugar for
+is syntactic sugar for:
 
 ```sw
 if condition then do
 	body
+```
 
 ### `enum`
 
@@ -32,7 +33,7 @@ enum MyEnum
 	Baz
 ```
 
-is syntactic sugar for
+is syntactic sugar for:
 
 ```sw
 tag MyEnum: MyEnum.Foo ? MyEnum.Bar ? MyEnum.Baz
@@ -50,7 +51,7 @@ when one is Two { three, four }
 	// ...
 ```
 
-is syntactic sugar for
+is syntactic sugar for:
 
 ```sw
 if one is Two
@@ -66,7 +67,7 @@ with one as Two { three, four }
 	// ...
 ```
 
-is syntactic sugar for
+is syntactic sugar for:
 
 ```sw
 block
@@ -79,16 +80,17 @@ block
 
 #### `+` (plus)
 
-in sweet, the `+` is not the `+` operator from other languages
-it takes take 2 numbers of any type and adds them together
-however it prevents overflow by promoting the types before adding them
-the type the `+` operator evaluates to is bits of the biggest input type plus 1
-e.g. `(a as u4) + (b as u8)` results in a `u9` type
+In sweet, the `+` is not the `+` operator from other languages.
+It takes take 2 numbers of any type and adds them together.
+However it prevents overflow by promoting the types before adding them.
+The type the `+` operator evaluates to is bits of the biggest input type plus 1.
+
+e.g. `(a as u4) + (b as u8)` results in a `u9` type.
 
 #### `-` (minus)
 
-like sweet's `+` operator, the `-` operator also prevents overflow
-even if given 2 unsigned integer types, the result is always a signed integer type
+Like sweet's `+` operator, the `-` operator also prevents overflow.
+Even if given 2 unsigned integer types, the result is always a signed integer type.
 
 ## Grammar
 

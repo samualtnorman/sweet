@@ -1,6 +1,6 @@
 import chalk from "chalk"
 import { readdir as readDirectory, readFile } from "fs/promises"
-import parse, { ParseError } from "./dist/parse.js"
+import parse from "./dist/parse.js"
 import { printExpressions } from "./dist/printExpression.js"
 import tokenise from "./dist/tokenise.js"
 
@@ -15,7 +15,8 @@ import tokenise from "./dist/tokenise.js"
 		expressions = [ ...parse(tokens) ]
 	} catch (error) {
 		console.error(chalk.red(`error in ${testPath}:`))
-		console.error(error instanceof ParseError ? error.message : error)
+		// console.error(error instanceof ParseError ? error.message : error)
+		console.error(error)
 		process.exitCode = 1
 
 		return

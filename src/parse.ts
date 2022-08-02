@@ -168,9 +168,10 @@ export namespace Expression {
 	export type Object = {
 		kind: ExpressionKind.Object
 
-		entries:
-			{ name: string, type: Expression | undefined, value: Expression }[] |
-			{ name: string, type: Expression, value: undefined }[]
+		entries: (
+			{ name: string, type: Expression | undefined, value: Expression } |
+			{ name: string, type: Expression, value: undefined }
+		)[]
 	}
 
 	export type Enum = { kind: ExpressionKind.Enum, name: string, members: { name: string, type: Expression | undefined }[] }
@@ -299,32 +300,44 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 		console.log(`DEBUG parseExpressions() ---`)
 	}
 
-	const parseExpression = (): Expression => {
+	const parseExpression = (noParseAssign: boolean): Expression => {
+		const expression = maybeParseExpression(noParseAssign)
+
+		if (expression)
+			return expression
+
+		throw new ParseError(tokens[state.cursor])
+	}
+
+	const maybeParseExpression = (noParseAssign: boolean): Expression | undefined => {
 		assert(state.cursor < tokens.length, HERE)
 
 		const firstToken = tokens[state.cursor]!
-
-		state.cursor++
-
 		let expression: Expression
 
 		switch (firstToken.kind) {
 			case TokenKind.Null: {
+				state.cursor++
 				expression = { kind: ExpressionKind.Null }
 			} break
 
 			case TokenKind.Void: {
-				expression = { kind: ExpressionKind.Void, expression: parseExpression() }
+				state.cursor++
+				expression = { kind: ExpressionKind.Void, expression: parseExpression(noParseAssign) }
 			} break
 
 			case TokenKind.Return: {
+				state.cursor++
+
 				expression = {
 					kind: ExpressionKind.Return,
-					expression: nextTokenIs(TokenKind.Newline) ? { kind: ExpressionKind.Null } : parseExpression()
+					expression: nextTokenIs(TokenKind.Newline) ? { kind: ExpressionKind.Null } : parseExpression(noParseAssign)
 				}
 			} break
 
 			case TokenKind.Let: {
+				state.cursor++
+
 				const binding: Expression.Identifier = {
 					kind: ExpressionKind.Identifier,
 					name: expectToken(TokenKind.Identifier).data!
@@ -334,20 +347,21 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 
 				if (nextTokenIs(TokenKind.Colon)) {
 					state.cursor++
-					type = parseExpression()
+					type = parseExpression(true)
 				}
 
 				let initialValue
 
 				if (nextTokenIs(TokenKind.Assign)) {
 					state.cursor++
-					initialValue = parseExpression()
+					initialValue = parseExpression(noParseAssign)
 				}
 
 				expression = { kind: ExpressionKind.Let, binding, type, initialValue }
 			} break
 
 			case TokenKind.Identifier: {
+				state.cursor++
 				expression = { kind: ExpressionKind.Identifier, name: firstToken.data }
 
 				const secondToken = tokens[state.cursor]
@@ -356,12 +370,15 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					// eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
 					switch (secondToken.kind) {
 						case TokenKind.Assign: {
+							if (noParseAssign)
+								return expression
+
 							state.cursor++
 
 							expression = {
 								kind: ExpressionKind.Assignment,
 								binding: expression,
-								value: parseExpression()
+								value: parseExpression(noParseAssign)
 							}
 						} break
 
@@ -379,6 +396,8 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			} break
 
 			case TokenKind.Number: {
+				state.cursor++
+
 				const secondToken = tokens[state.cursor]
 
 				if (firstToken.data.includes(`.`)) {
@@ -466,30 +485,37 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			} break
 
 			case TokenKind.Float16Type: {
+				state.cursor++
 				expression = { kind: ExpressionKind.Float16Type }
 			} break
 
 			case TokenKind.Float32Type: {
+				state.cursor++
 				expression = { kind: ExpressionKind.Float32Type }
 			} break
 
 			case TokenKind.Float64Type: {
+				state.cursor++
 				expression = { kind: ExpressionKind.Float64Type }
 			} break
 
 			case TokenKind.Float128Type: {
+				state.cursor++
 				expression = { kind: ExpressionKind.Float128Type }
 			} break
 
 			case TokenKind.UnsignedIntegerType: {
+				state.cursor++
 				expression = { kind: ExpressionKind.UnsignedIntegerType, bits: Number(firstToken.data) }
 			} break
 
 			case TokenKind.SignedIntegerType: {
+				state.cursor++
 				expression = { kind: ExpressionKind.SignedIntegerType, bits: Number(firstToken.data) }
 			} break
 
 			case TokenKind.Enum: {
+				state.cursor++
 				expression = { kind: ExpressionKind.Enum, name: expectToken(TokenKind.Identifier).data, members: [] }
 				indentLevel++
 				expectNewline()
@@ -500,26 +526,101 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 
 					if (nextTokenIs(TokenKind.Colon)) {
 						state.cursor++
-						type = parseExpression()
+						type = parseExpression(noParseAssign)
 					}
 
 					expression.members.push({ name, type })
 
-					const newline = expectToken(TokenKind.Newline)
+					const newline = tokens[state.cursor]
+
+					if (newline?.kind != TokenKind.Newline)
+						throw new ParseError(newline, [ TokenKind.Newline ])
 
 					if (newline.data.length < indentLevel)
 						break
 
 					if (newline.data.length != indentLevel)
 						throw new WrongIndentLevelError(newline, indentLevel)
+
+					state.cursor++
 				}
 
 				indentLevel--
-				state.cursor--
+			} break
+
+			case TokenKind.Function: {
+				state.cursor++
+
+				const name = expectToken(TokenKind.Identifier).data
+				const parameterName = expectToken(TokenKind.Identifier).data
+				let parameterType
+
+				if (nextTokenIs(TokenKind.Colon)) {
+					state.cursor++
+					parameterType = parseExpression(noParseAssign)
+				}
+
+				let returnType
+
+				if (nextTokenIs(TokenKind.Arrow)) {
+					state.cursor++
+					returnType = parseExpression(noParseAssign)
+				}
+
+				indentLevel++
+				expectNewline()
+
+				expression = {
+					kind: ExpressionKind.Function,
+					name,
+					parameter: { kind: ExpressionKind.Identifier, name: parameterName },
+					parameterType,
+					returnType,
+					body: [ ...parseExpressions(tokens, indentLevel, state) ]
+				}
+
+				indentLevel--
+			} break
+
+			case TokenKind.OpenSquiglyBracket: {
+				state.cursor++
+				expression = { kind: ExpressionKind.Object, entries: [] }
+
+				if (nextTokenIs(TokenKind.CloseSquiglyBracket)) {
+					state.cursor++
+
+					break
+				}
+
+				while (true) {
+					const name = expectToken(TokenKind.Identifier).data
+					let type
+
+					if (nextTokenIs(TokenKind.Colon)) {
+						state.cursor++
+						type = parseExpression(true)
+					}
+
+					if (nextTokenIs(TokenKind.Assign)) {
+						state.cursor++
+						expression.entries.push({ name, type, value: parseExpression(noParseAssign) })
+					} else if (type)
+						expression.entries.push({ name, type, value: undefined })
+					else
+						expression.entries.push({ name, type, value: { kind: ExpressionKind.Identifier, name } })
+
+					if (nextTokenIs(TokenKind.CloseSquiglyBracket)) {
+						state.cursor++
+
+						break
+					}
+
+					expectToken(TokenKind.Comma)
+				}
 			} break
 
 			default:
-				throw new ParseError(tokens[state.cursor - 1])
+				return undefined
 		}
 
 		while (state.cursor < tokens.length) {
@@ -528,11 +629,17 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 
 			const kind = BinaryOperatorTokensToExpressionKinds[tokens[state.cursor]!.kind]
 
-			if (!kind)
-				return { kind: ExpressionKind.Call, called: expression, argument: parseExpression() }
+			if (!kind) {
+				const argument = maybeParseExpression(noParseAssign)
+
+				if (argument)
+					return { kind: ExpressionKind.Call, called: expression, argument }
+
+				return expression
+			}
 
 			state.cursor++
-			expression = { kind, left: expression, right: parseExpression() }
+			expression = { kind, left: expression, right: parseExpression(noParseAssign) }
 		}
 
 		return expression
@@ -569,7 +676,19 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 	}
 
 	while (state.cursor < tokens.length) {
-		yield parseExpression()
-		expectNewline()
+		yield parseExpression(false)
+
+		const newline = tokens[state.cursor]
+
+		if (newline?.kind != TokenKind.Newline)
+			throw new ParseError(newline, [ TokenKind.Newline ])
+
+		if (newline.data.length < indentLevel)
+			return
+
+		if (newline.data.length != indentLevel)
+			throw new WrongIndentLevelError(newline, indentLevel)
+
+		state.cursor++
 	}
 }
