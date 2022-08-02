@@ -1,7 +1,7 @@
 import { isRecord } from "@samual/lib"
 import { Expression, ExpressionKind } from "./parse"
 
-export const printNode = (node: Record<string, unknown>, indentString = `\t`, indentLevel = 0): string => {
+export const printExpression = (node: Record<string, unknown>, indentString = `\t`, indentLevel = 0): string => {
 	const { kind, ...nodeProperties } = node
 	let o = ``
 
@@ -14,9 +14,9 @@ export const printNode = (node: Record<string, unknown>, indentString = `\t`, in
 		if (typeof value == `bigint`)
 			o += ` ${value}n\n`
 		else if (Array.isArray(value))
-			o += `\n${printNodes(value, indentString, indentLevel + 1)}`
+			o += `\n${printExpressions(value, indentString, indentLevel + 1)}`
 		else if (isRecord(value))
-			o += ` ${printNode(value, indentString, indentLevel)}`
+			o += ` ${printExpression(value, indentString, indentLevel)}`
 		else
 			o += ` ${JSON.stringify(value)}\n`
 	}
@@ -24,13 +24,13 @@ export const printNode = (node: Record<string, unknown>, indentString = `\t`, in
 	return o
 }
 
-export default printNode
+export default printExpression
 
-export const printNodes = (nodes: Node[], indentString = `\t`, indentLevel = 0): string => {
+export const printExpressions = (nodes: Expression[], indentString = `\t`, indentLevel = 0): string => {
 	let o = ``
 
 	for (const node of nodes)
-		o += `${indentString.repeat(indentLevel)}${printNode(node, indentString, indentLevel)}\n`
+		o += `${indentString.repeat(indentLevel)}${printExpression(node, indentString, indentLevel)}\n`
 
 	return o
 }

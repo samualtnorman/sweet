@@ -1,9 +1,9 @@
 # Sweet
 
 ## Influences
-- JavaScript
-- TypeScript
+- JavaScript/TypeScript
 - Zig
+- Lua
 - Rust
 - Roc
 - CoffeeScript

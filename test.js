@@ -1,21 +1,18 @@
-import { readdir as readDirectory, readFile } from "fs/promises"
-import { parse, tokenise } from "./dist/index.js"
 import chalk from "chalk"
-import { ParseError } from "./dist/parse.js"
-import { printNodes } from "./dist/printNode.js"
+import { readdir as readDirectory, readFile } from "fs/promises"
+import parse, { ParseError } from "./dist/parse.js"
+import { printExpressions } from "./dist/printExpression.js"
+import tokenise from "./dist/tokenise.js"
 
 (await readDirectory(`test`)).map(async testFileName => {
 	const testPath = `test/${testFileName}`
-	let nodes
+	let expressions
 
 	try {
 		const sourceCode = await readFile(testPath, { encoding: `utf-8` })
 		const tokens = [ ...tokenise(sourceCode) ]
 
-		if (testFileName == `call.sw`)
-			debugger
-
-		nodes = [ ...parse(tokens) ]
+		expressions = [ ...parse(tokens) ]
 	} catch (error) {
 		console.error(chalk.red(`error in ${testPath}:`))
 		console.error(error instanceof ParseError ? error.message : error)
@@ -25,7 +22,7 @@ import { printNodes } from "./dist/printNode.js"
 	}
 
 	console.log(chalk.green(`${testPath} passed:`))
-	console.log(printNodes(nodes, `    `, 1))
+	console.log(printExpressions(expressions, `    `, 1))
 })
 
 // const sourceCode = await readFile(`test.sw`, { encoding: `utf-8` })

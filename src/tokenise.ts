@@ -214,17 +214,20 @@ export enum TokenKind {
 	Defer
 }
 
-type DataTokenKinds = TokenKind.UnsignedIntegerType | TokenKind.SignedIntegerType | TokenKind.BinaryNumber |
+export type DataTokenKinds = TokenKind.UnsignedIntegerType | TokenKind.SignedIntegerType | TokenKind.BinaryNumber |
 	TokenKind.HexNumber | TokenKind.OctalNumber | TokenKind.Number | TokenKind.String | TokenKind.Identifier |
 	TokenKind.Newline | TokenKind.Error
 
-export type Token = {
+export type NonDataToken = {
 	kind: Exclude<TokenKind, DataTokenKinds>
 	data: undefined
 	index: number
 	line: number
 	column: number
-} | { kind: DataTokenKinds, data: string, index: number, line: number, column: number }
+}
+
+export type DataToken = { kind: DataTokenKinds, data: string, index: number, line: number, column: number }
+export type Token = NonDataToken | DataToken
 
 export const NonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenKind, DataTokenKinds> }[] = [
 	{ regex: /^while\b/, tokenKind: TokenKind.While },

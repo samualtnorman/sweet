@@ -1,4 +1,4 @@
-export function getIntegerLength(number: bigint) {
+export const getIntegerLength = (number: bigint) => {
 	let length = 1
 
 	number = number < 0n ? -number : number

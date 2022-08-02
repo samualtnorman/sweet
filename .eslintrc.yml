@@ -158,7 +158,6 @@ rules:
   no-inner-declarations: off
   unicorn/better-regex: off
   unicorn/prefer-top-level-await: off
-  no-fallthrough: off
 
   no-constant-condition:
     - warn
@@ -257,7 +256,7 @@ rules:
 
   operator-linebreak:
     - warn
-    - before
+    - after
 
   padded-blocks:
     - warn

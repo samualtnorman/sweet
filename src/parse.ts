@@ -1,6 +1,6 @@
 import { assert } from "@samual/lib"
 import { getIntegerLength } from "./shared"
-import { printToken, Token, TokenKind } from "./tokenise"
+import { DataToken, DataTokenKinds, NonDataToken, printToken, Token, TokenKind } from "./tokenise"
 
 // TODO complain when number literal too big or small for bits
 
@@ -176,7 +176,7 @@ export namespace Expression {
 	export type Enum = { kind: ExpressionKind.Enum, name: string, members: { name: string, type: Expression | undefined }[] }
 	export type Import = { kind: ExpressionKind.Import, path: string, as: string | ImportDestructureMember[] | undefined }
 	export type Array = { kind: ExpressionKind.Array, expressions: Expression[] }
-	export type Call = { kind: ExpressionKind.Call, callable: Expression, argument: Expression }
+	export type Call = { kind: ExpressionKind.Call, called: Expression, argument: Expression }
 	export type Return = { kind: ExpressionKind.Return, expression: Expression }
 	export type SignedIntegerLiteral = { kind: ExpressionKind.SignedIntegerLiteral, value: bigint, bits: number }
 	export type UnsignedIntegerLiteral = { kind: ExpressionKind.UnsignedIntegerLiteral, value: bigint, bits: number }
@@ -237,11 +237,13 @@ const getExpectedTypeNames = (expectedTypes: TokenKind[]) =>
 
 export class WrongIndentLevelError extends ParseError {
 	constructor(
-		public override readonly token: Token,
+		public override readonly token: DataToken,
 		public readonly expected: number
 	) {
 		super(undefined, [ TokenKind.Newline ])
-		this.message = `wrong indent level, expected ${expected} but got ${token.data!.length} at :${token.line + 1}:${1}`
+
+		this.message =
+			`wrong indent level, expected ${expected} but got ${token.data.length} at :${token.line + 1}:${1}`
 	}
 
 	static {
@@ -298,51 +300,29 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 	}
 
 	const parseExpression = (): Expression => {
-		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-		if (DEBUG) {
-			for (const token of tokens.slice(state.cursor))
-				console.log(`DEBUG parseExpression()`, printToken(token))
+		assert(state.cursor < tokens.length, HERE)
 
-			console.log(`DEBUG parseExpression() ---`)
-		}
-
-		let expression = parseElement()
-
-		while (tokens.length > state.cursor) {
-			const kind = BinaryOperatorTokensToExpressionKinds[tokens[state.cursor]!.kind]
-
-			if (kind) {
-				state.cursor++
-				expression = { kind, left: expression, right: parseElement() }
-			} else if (tokens[state.cursor]!.kind == TokenKind.Newline)
-				break
-			else
-				expression = { kind: ExpressionKind.Call, callable: expression, argument: parseExpression() }
-		}
-
-		return expression
-	}
-
-	const parseElement = (): Expression => {
-		if (tokens.length == state.cursor)
-			throw new ParseError(undefined)
+		const firstToken = tokens[state.cursor]!
 
 		state.cursor++
 
-		// eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-		switch (tokens[state.cursor - 1]!.kind) {
-			case TokenKind.Null:
-				return { kind: ExpressionKind.Null }
+		let expression: Expression
 
-			case TokenKind.Void:
-				return { kind: ExpressionKind.Void, expression: parseExpression() }
+		switch (firstToken.kind) {
+			case TokenKind.Null: {
+				expression = { kind: ExpressionKind.Null }
+			} break
+
+			case TokenKind.Void: {
+				expression = { kind: ExpressionKind.Void, expression: parseExpression() }
+			} break
 
 			case TokenKind.Return: {
-				if (nextTokenIs(TokenKind.Newline))
-					return { kind: ExpressionKind.Return, expression: { kind: ExpressionKind.Null } }
-
-				return { kind: ExpressionKind.Return, expression: parseExpression() }
-			}
+				expression = {
+					kind: ExpressionKind.Return,
+					expression: nextTokenIs(TokenKind.Newline) ? { kind: ExpressionKind.Null } : parseExpression()
+				}
+			} break
 
 			case TokenKind.Let: {
 				const binding: Expression.Identifier = {
@@ -364,188 +344,158 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					initialValue = parseExpression()
 				}
 
-				return { kind: ExpressionKind.Let, binding, type, initialValue }
-			}
+				expression = { kind: ExpressionKind.Let, binding, type, initialValue }
+			} break
 
 			case TokenKind.Identifier: {
-				const name = tokens[state.cursor - 1]!.data!
+				expression = { kind: ExpressionKind.Identifier, name: firstToken.data }
 
-				if (nextTokenIs(TokenKind.Assign)) {
-					state.cursor++
+				const secondToken = tokens[state.cursor]
 
-					return {
-						kind: ExpressionKind.Assignment,
-						binding: { kind: ExpressionKind.Identifier, name },
-						value: parseExpression()
+				if (secondToken) {
+					// eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+					switch (secondToken.kind) {
+						case TokenKind.Assign: {
+							state.cursor++
+
+							expression = {
+								kind: ExpressionKind.Assignment,
+								binding: expression,
+								value: parseExpression()
+							}
+						} break
+
+						case TokenKind.Increment: {
+							state.cursor++
+							expression = { kind: ExpressionKind.Increment, binding: expression }
+						} break
+
+						case TokenKind.Decrement: {
+							state.cursor++
+							expression = { kind: ExpressionKind.Decrement, binding: expression }
+						}
 					}
 				}
-
-				if (nextTokenIs(TokenKind.Increment)) {
-					state.cursor++
-
-					return {
-						kind: ExpressionKind.Increment,
-						binding: { kind: ExpressionKind.Identifier, name }
-					}
-				}
-
-				if (nextTokenIs(TokenKind.Decrement)) {
-					state.cursor++
-
-					return {
-						kind: ExpressionKind.Decrement,
-						binding: { kind: ExpressionKind.Identifier, name }
-					}
-				}
-
-				return { kind: ExpressionKind.Identifier, name }
-			}
+			} break
 
 			case TokenKind.Number: {
-				const numberString = tokens[state.cursor - 1]!.data!
+				const secondToken = tokens[state.cursor]
 
-				if (numberString.includes(`.`)) {
-					if (nextTokenIs(TokenKind.Float16Type)) {
-						state.cursor++
+				if (firstToken.data.includes(`.`)) {
+					switch (secondToken?.kind) {
+						case TokenKind.Float16Type: {
+							state.cursor++
+							expression = { kind: ExpressionKind.Float16Literal, value: Number(firstToken.data) }
+						} break
 
-						return {
-							kind: ExpressionKind.Float16Literal,
-							value: Number(numberString)
+						case TokenKind.Float32Type: {
+							state.cursor++
+							expression = { kind: ExpressionKind.Float32Literal, value: Number(firstToken.data) }
+						} break
+
+						case TokenKind.Float64Type: {
+							state.cursor++
+							expression = { kind: ExpressionKind.Float64Literal, value: Number(firstToken.data) }
+						} break
+
+						case TokenKind.Float128Type: {
+							state.cursor++
+							expression = { kind: ExpressionKind.Float128Literal, value: Number(firstToken.data) }
+						} break
+
+						default:
+							expression = { kind: ExpressionKind.Float64Literal, value: Number(firstToken.data) }
+					}
+				} else {
+					switch (secondToken?.kind) {
+						case TokenKind.UnsignedIntegerType: {
+							const bits = Number(secondToken.data)
+
+							state.cursor++
+
+							expression = {
+								kind: ExpressionKind.UnsignedIntegerLiteral,
+								value: BigInt(firstToken.data),
+								bits
+							}
+						} break
+
+						case TokenKind.SignedIntegerType: {
+							const bits = Number(secondToken.data)
+
+							state.cursor++
+
+							expression = {
+								kind: ExpressionKind.SignedIntegerLiteral,
+								value: BigInt(firstToken.data),
+								bits
+							}
+						} break
+
+						case TokenKind.Float16Type: {
+							state.cursor++
+							expression = { kind: ExpressionKind.Float16Literal, value: Number(firstToken.data) }
+						} break
+
+						case TokenKind.Float32Type: {
+							state.cursor++
+							expression = { kind: ExpressionKind.Float32Literal, value: Number(firstToken.data) }
+						} break
+
+						case TokenKind.Float64Type: {
+							state.cursor++
+							expression = { kind: ExpressionKind.Float64Literal, value: Number(firstToken.data) }
+						} break
+
+						case TokenKind.Float128Type: {
+							state.cursor++
+							expression = { kind: ExpressionKind.Float128Literal, value: Number(firstToken.data) }
+						} break
+
+						default: {
+							const value = BigInt(firstToken.data)
+
+							expression = {
+								kind: ExpressionKind.UnsignedIntegerLiteral,
+								value,
+								bits: getIntegerLength(value)
+							}
 						}
 					}
-
-					if (nextTokenIs(TokenKind.Float32Type)) {
-						state.cursor++
-
-						return {
-							kind: ExpressionKind.Float32Literal,
-							value: Number(numberString)
-						}
-					}
-
-					if (nextTokenIs(TokenKind.Float64Type)) {
-						state.cursor++
-
-						return {
-							kind: ExpressionKind.Float64Literal,
-							value: Number(numberString)
-						}
-					}
-
-					if (nextTokenIs(TokenKind.Float128Type)) {
-						state.cursor++
-
-						return {
-							kind: ExpressionKind.Float128Literal,
-							value: Number(numberString)
-						}
-					}
-
-					return {
-						kind: ExpressionKind.Float64Literal,
-						value: Number(numberString)
-					}
 				}
+			} break
 
-				if (nextTokenIs(TokenKind.UnsignedIntegerType)) {
-					const bits = Number(tokens[state.cursor]!.data)
+			case TokenKind.Float16Type: {
+				expression = { kind: ExpressionKind.Float16Type }
+			} break
 
-					state.cursor++
+			case TokenKind.Float32Type: {
+				expression = { kind: ExpressionKind.Float32Type }
+			} break
 
-					return {
-						kind: ExpressionKind.UnsignedIntegerLiteral,
-						value: BigInt(numberString),
-						bits
-					}
-				}
+			case TokenKind.Float64Type: {
+				expression = { kind: ExpressionKind.Float64Type }
+			} break
 
-				if (nextTokenIs(TokenKind.SignedIntegerType)) {
-					const bits = Number(tokens[state.cursor]!.data)
+			case TokenKind.Float128Type: {
+				expression = { kind: ExpressionKind.Float128Type }
+			} break
 
-					state.cursor++
+			case TokenKind.UnsignedIntegerType: {
+				expression = { kind: ExpressionKind.UnsignedIntegerType, bits: Number(firstToken.data) }
+			} break
 
-					return {
-						kind: ExpressionKind.SignedIntegerLiteral,
-						value: BigInt(numberString),
-						bits
-					}
-				}
-
-				if (nextTokenIs(TokenKind.Float16Type)) {
-					state.cursor++
-
-					return {
-						kind: ExpressionKind.Float16Literal,
-						value: Number(numberString)
-					}
-				}
-
-				if (nextTokenIs(TokenKind.Float32Type)) {
-					state.cursor++
-
-					return {
-						kind: ExpressionKind.Float32Literal,
-						value: Number(numberString)
-					}
-				}
-
-				if (nextTokenIs(TokenKind.Float64Type)) {
-					state.cursor++
-
-					return {
-						kind: ExpressionKind.Float64Literal,
-						value: Number(numberString)
-					}
-				}
-
-				if (nextTokenIs(TokenKind.Float128Type)) {
-					state.cursor++
-
-					return {
-						kind: ExpressionKind.Float128Literal,
-						value: Number(numberString)
-					}
-				}
-
-				const value = BigInt(numberString)
-
-				return {
-					kind: ExpressionKind.UnsignedIntegerLiteral,
-					value,
-					bits: getIntegerLength(value)
-				}
-			}
-
-			case TokenKind.Float16Type:
-				return { kind: ExpressionKind.Float16Type }
-
-			case TokenKind.Float32Type:
-				return { kind: ExpressionKind.Float32Type }
-
-			case TokenKind.Float64Type:
-				return { kind: ExpressionKind.Float64Type }
-
-			case TokenKind.Float128Type:
-				return { kind: ExpressionKind.Float128Type }
-
-			case TokenKind.UnsignedIntegerType:
-				return { kind: ExpressionKind.UnsignedIntegerType, bits: Number(tokens[state.cursor - 1]!.data!) }
-
-			case TokenKind.SignedIntegerType:
-				return { kind: ExpressionKind.SignedIntegerType, bits: Number(tokens[state.cursor - 1]!.data!) }
+			case TokenKind.SignedIntegerType: {
+				expression = { kind: ExpressionKind.SignedIntegerType, bits: Number(firstToken.data) }
+			} break
 
 			case TokenKind.Enum: {
-				const enum_: Expression.Enum = {
-					kind: ExpressionKind.Enum,
-					name: expectToken(TokenKind.Identifier).data!,
-					members: []
-				}
-
+				expression = { kind: ExpressionKind.Enum, name: expectToken(TokenKind.Identifier).data, members: [] }
 				indentLevel++
 				expectNewline()
 
 				while (true) {
-					const name = expectToken(TokenKind.Identifier).data!
+					const name = expectToken(TokenKind.Identifier).data
 					let type
 
 					if (nextTokenIs(TokenKind.Colon)) {
@@ -553,42 +503,57 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 						type = parseExpression()
 					}
 
-					enum_.members.push({ name, type })
+					expression.members.push({ name, type })
 
 					const newline = expectToken(TokenKind.Newline)
 
-					if (newline.data!.length < indentLevel)
+					if (newline.data.length < indentLevel)
 						break
 
-					if (newline.data!.length != indentLevel)
+					if (newline.data.length != indentLevel)
 						throw new WrongIndentLevelError(newline, indentLevel)
 				}
 
 				indentLevel--
+				state.cursor--
+			} break
 
-				return enum_
-			}
+			default:
+				throw new ParseError(tokens[state.cursor - 1])
 		}
 
-		throw new ParseError(tokens[state.cursor - 1])
+		while (state.cursor < tokens.length) {
+			if (nextTokenIs(TokenKind.Newline))
+				return expression
+
+			const kind = BinaryOperatorTokensToExpressionKinds[tokens[state.cursor]!.kind]
+
+			if (!kind)
+				return { kind: ExpressionKind.Call, called: expression, argument: parseExpression() }
+
+			state.cursor++
+			expression = { kind, left: expression, right: parseExpression() }
+		}
+
+		return expression
 	}
 
 	const expectNewline = () => {
 		const newline = expectToken(TokenKind.Newline)
 
-		if (newline.data!.length != indentLevel)
+		if (newline.data.length != indentLevel)
 			throw new WrongIndentLevelError(newline, indentLevel)
 	}
 
-	const expectToken = (expectedType: TokenKind) => {
-		if (tokens[state.cursor]?.kind != expectedType)
-			throw new ParseError(tokens[state.cursor], [ expectedType ])
+	const expectToken = <K extends TokenKind>(expectedKind: K): K extends DataTokenKinds ? DataToken : NonDataToken => {
+		const token = tokens[state.cursor]
 
-		const token = tokens[state.cursor]!
+		if (token?.kind != expectedKind)
+			throw new ParseError(token, [ expectedKind ])
 
 		state.cursor++
 
-		return token
+		return token as any
 	}
 
 	const nextTokenIs = (...types: TokenKind[]): boolean => {
@@ -603,26 +568,8 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 		return true
 	}
 
-	while (true) {
+	while (state.cursor < tokens.length) {
 		yield parseExpression()
-
-		if (state.cursor >= tokens.length)
-			return
-
-		if (!nextTokenIs(TokenKind.Newline))
-			throw new ParseError(tokens[state.cursor], [ TokenKind.Newline ])
-
-		const newline = tokens[state.cursor]!
-
-		if (newline.data!.length < indentLevel)
-			return
-
-		if (newline.data!.length != indentLevel)
-			throw new WrongIndentLevelError(newline, indentLevel)
-
-		state.cursor++
-
-		if (state.cursor >= tokens.length)
-			return
+		expectNewline()
 	}
 }
