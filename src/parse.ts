@@ -167,11 +167,7 @@ export namespace Expression {
 
 	export type Object = {
 		kind: ExpressionKind.Object
-
-		entries: (
-			{ name: string, type: Expression | undefined, value: Expression } |
-			{ name: string, type: Expression, value: undefined }
-		)[]
+		entries: { name: string, type: Expression | undefined, value: Expression | undefined }[]
 	}
 
 	export type Enum = { kind: ExpressionKind.Enum, name: string, members: { name: string, type: Expression | undefined }[] }
@@ -601,13 +597,14 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 						type = parseExpression(true)
 					}
 
+					let value
+
 					if (nextTokenIs(TokenKind.Assign)) {
 						state.cursor++
-						expression.entries.push({ name, type, value: parseExpression(noParseAssign) })
-					} else if (type)
-						expression.entries.push({ name, type, value: undefined })
-					else
-						expression.entries.push({ name, type, value: { kind: ExpressionKind.Identifier, name } })
+						value = parseExpression(noParseAssign)
+					}
+
+					expression.entries.push({ name, type, value })
 
 					if (nextTokenIs(TokenKind.CloseSquiglyBracket)) {
 						state.cursor++

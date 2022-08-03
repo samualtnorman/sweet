@@ -218,7 +218,8 @@ export enum TokenKind {
 	ErrorDefer,
 	Clean,
 	ErrorClean,
-	NoClean
+	NoClean,
+	Primitive
 }
 
 export type DataTokenKinds = TokenKind.UnsignedIntegerType | TokenKind.SignedIntegerType | TokenKind.BinaryNumber |
@@ -374,6 +375,7 @@ export const NonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenK
 	{ regex: /^clean\b/, tokenKind: TokenKind.Clean },
 	{ regex: /^err(?:or)?clean\b/, tokenKind: TokenKind.ErrorClean },
 	{ regex: /^noclean\b/, tokenKind: TokenKind.NoClean },
+	{ regex: /^primtive\b/, tokenKind: TokenKind.Primitive },
 	{ regex: /^\+%/, tokenKind: TokenKind.WrappingAdd },
 	{ regex: /^-%/, tokenKind: TokenKind.WrappingMinus },
 	{ regex: /^\/%/, tokenKind: TokenKind.WrappingDivide },
