@@ -1,30 +1,27 @@
 import chalk from "chalk"
-import { readdir as readDirectory, readFile } from "fs/promises"
+import { readdirSync as readDirectorySync } from "fs"
+import { readFile } from "fs/promises"
 import parse from "./dist/parse.js"
 import { printExpressions } from "./dist/printExpression.js"
 import tokenise from "./dist/tokenise.js"
 
-(await readDirectory(`test`)).map(async testFileName => {
+for (const testFileName of readDirectorySync(`test`)) {
 	const testPath = `test/${testFileName}`
-	let expressions
 
-	try {
-		const sourceCode = await readFile(testPath, { encoding: `utf-8` })
-		const tokens = [ ...tokenise(sourceCode) ]
+	readFile(testPath, { encoding: `utf-8` })
+		.then(sourceCode => {
+			const expressions = [ ...parse([...tokenise(sourceCode)]) ]
 
-		expressions = [ ...parse(tokens) ]
-	} catch (error) {
-		console.error(chalk.red(`error in ${testPath}:`))
-		// console.error(error instanceof ParseError ? error.message : error)
-		console.error(error)
-		process.exitCode = 1
-
-		return
-	}
-
-	console.log(chalk.green(`${testPath} passed:`))
-	console.log(printExpressions(expressions, `    `, 1))
-})
+			console.log(chalk.green(`${testPath} passed:`))
+			console.log(printExpressions(expressions, `    `, 1))
+		})
+		.catch(error => {
+			console.error(chalk.red(`error in ${testPath}:`))
+			// console.error(error instanceof ParseError ? error.message : error)
+			console.error(error)
+			process.exitCode = 1
+		})
+}
 
 // const sourceCode = await readFile(`test.sw`, { encoding: `utf-8` })
 // const tokens = [ ...tokenise(sourceCode) ]

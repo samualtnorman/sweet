@@ -100,7 +100,7 @@ Module = Statement\<indent = 0>+
 Statement `\t`{indent} Expression `\n`
 
 Expression = Function | Identifier | Tag | Enum | UnaryExpression | BinaryExpression | Rement | Assignment |
-	GetMember | VariableDeclaration | Object | Call | String | FunctionType | Import | Array
+	GetMember | VariableDeclaration | Object | Call | String | FunctionType | Import | Array | Do | If | While
 
 DeclaredImport = `declare` `import` String `as` `{` DeclaredImportMember (`,` DeclaredImportMember)* `}`
 
@@ -163,6 +163,12 @@ AssignmentOperator = `=` | `+=` | `-=` | `/=` | `*=` | `%=` | `**=` | `+%=` | `-
 	`>>=` | `<<%=` | `&=` | `|=` | `^=` | `&&=` | `||=` | `??=` | `..=` | `:=`
 
 Enum = `enum` Identifier `\n` (`\t`{(indent + 1)} Identifier (`:` Expression)? `\n`)+
+
+While = `while` Expression `\n` Statement\<indent = (indent + 1)>+
+
+If = `if` Expression (`then` Expression | `\n` Statement\<indent = (indent + 1)>+) (`else` (Expression | `\n` Statement\<indent = (indent + 1)>+))?
+
+Do = `do` `\n` Statement\<indent = (indent + 1)>+
 
 Tag = `tag` Identifier (`:` Expression)?
 

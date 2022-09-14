@@ -87,7 +87,8 @@ export enum ExpressionKind {
 	Union,
 	Concatenate,
 	Enum,
-	Object
+	Object,
+	Loop
 }
 
 export type Expression = Expression.Function | Expression.Boolean | Expression.Object | Expression.String |
@@ -99,7 +100,7 @@ export type Expression = Expression.Function | Expression.Boolean | Expression.O
 	Expression.Import | Expression.GetMember | Expression.Null | Expression.True | Expression.False |
 	Expression.UnsignedIntegerLiteral | Expression.SignedIntegerLiteral | Expression.Float16Literal |
 	Expression.Float32Literal | Expression.Float64Literal | Expression.Float128Literal | Expression.Array |
-	Expression.BinaryOperation | Expression.Enum
+	Expression.BinaryOperation | Expression.Enum | Expression.Loop
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expression {
@@ -191,6 +192,7 @@ export namespace Expression {
 	export type Float128Type = { kind: ExpressionKind.Float128Type }
 	export type Null = { kind: ExpressionKind.Null }
 	export type Do = { kind: ExpressionKind.Do, body: Expression[] }
+	export type Loop = { kind: ExpressionKind.Loop, body: Expression[] }
 	export type Void = { kind: ExpressionKind.Void, expression: Expression }
 	export type True = { kind: ExpressionKind.True }
 	export type False = { kind: ExpressionKind.False }
@@ -312,6 +314,50 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 		let expression: Expression
 
 		switch (firstToken.kind) {
+			case TokenKind.If: {
+				state.cursor++
+
+				const condition = parseExpression(false)
+
+				let truthyBranch: Expression
+
+				if (nextTokenIs(TokenKind.Then)) {
+					state.cursor++
+					truthyBranch = parseExpression(false)
+				} else {
+					indentLevel++
+					expectNewline()
+					truthyBranch = { kind: ExpressionKind.Do, body: [ ...parseExpressions(tokens, indentLevel, state) ] }
+					indentLevel--
+				}
+
+				let falseyBranch: Expression | undefined
+
+				if (nextTokenIs(TokenKind.Else)) {
+					state.cursor++
+
+					console.log(tokens[state.cursor], nextTokenIs(TokenKind.Newline))
+
+					if (nextTokenIs(TokenKind.Newline)) {
+						indentLevel++
+						expectNewline()
+						falseyBranch = { kind: ExpressionKind.Do, body: [ ...parseExpressions(tokens, indentLevel, state) ] }
+						indentLevel--
+					} else
+						falseyBranch = parseExpression(false)
+				}
+
+				expression = { kind: ExpressionKind.If, condition, truthyBranch, falseyBranch }
+			} break
+
+			case TokenKind.Do: {
+				state.cursor++
+				indentLevel++
+				expectNewline()
+				expression = { kind: ExpressionKind.Do, body: [ ...parseExpressions(tokens, indentLevel, state) ] }
+				indentLevel--
+			} break
+
 			case TokenKind.OpenBracket: {
 				state.cursor++
 				expression = parseExpression(false)
