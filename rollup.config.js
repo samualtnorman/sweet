@@ -28,9 +28,7 @@ const sourceDirectory = `src`
  * @returns promise that resolves to array of found files
  */
 const findFiles = async (path, filter = [], paths = []) => {
-	const filterFunction = Array.isArray(filter)
-		? name => !filter.includes(name)
-		: filter
+	const filterFunction = Array.isArray(filter) ? name => !filter.includes(name) : filter
 
 	await Promise.all((await readDirectory(path, { withFileTypes: true })).map(async dirent => {
 		if (!filterFunction(dirent.name))

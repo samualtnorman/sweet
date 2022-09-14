@@ -3,6 +3,7 @@
 ## Influences
 - [JavaScript](https://developer.mozilla.org/en-US/docs/Web/javascript)/[TypeScript](https://www.typescriptlang.org/)
 - [Zig](https://ziglang.org/)
+- [Python](https://www.python.org/)
 - [Lua](https://www.lua.org/)
 - [Rust](https://www.rust-lang.org/)
 - [Roc](https://www.roc-lang.org/)

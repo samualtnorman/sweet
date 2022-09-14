@@ -207,6 +207,10 @@ export namespace Expression {
 }
 
 export class ParseError extends Error {
+	static {
+		Object.defineProperty(this.prototype, `name`, { value: this.name })
+	}
+
 	constructor(
 		public readonly token: Token | undefined,
 		public readonly expectedTypes?: TokenKind[]
@@ -223,16 +227,16 @@ export class ParseError extends Error {
 		else
 			super(`unexpected end`)
 	}
-
-	static {
-		Object.defineProperty(this.prototype, `name`, { value: this.name })
-	}
 }
 
 const getExpectedTypeNames = (expectedTypes: TokenKind[]) =>
 	expectedTypes.map(expectedType => TokenKind[expectedType]).join(`, `)
 
 export class WrongIndentLevelError extends ParseError {
+	static {
+		Object.defineProperty(this.prototype, `name`, { value: this.name })
+	}
+
 	constructor(
 		public override readonly token: DataToken,
 		public readonly expected: number
@@ -241,10 +245,6 @@ export class WrongIndentLevelError extends ParseError {
 
 		this.message =
 			`wrong indent level, expected ${expected} but got ${token.data.length} at :${token.line + 1}:${1}`
-	}
-
-	static {
-		Object.defineProperty(this.prototype, `name`, { value: this.name })
 	}
 }
 
@@ -312,6 +312,12 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 		let expression: Expression
 
 		switch (firstToken.kind) {
+			case TokenKind.OpenBracket: {
+				state.cursor++
+				expression = parseExpression(false)
+				expectToken(TokenKind.CloseBracket)
+			} break
+
 			case TokenKind.Null: {
 				state.cursor++
 				expression = { kind: ExpressionKind.Null }
