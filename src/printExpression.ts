@@ -5,11 +5,13 @@ export const printExpression = (node: Record<string, unknown>, indentString = `\
 	const { kind, ...nodeProperties } = node
 	let o = ``
 
-	o += `${typeof kind == `number` ? ExpressionKind[kind] : `-`}\n`
-	indentLevel++
+	if (typeof kind == `number`) {
+		o += `${ExpressionKind[kind]}\n`
+		indentLevel++
+	}
 
 	for (const [ name, value ] of Object.entries(nodeProperties)) {
-		o += `${indentString.repeat(indentLevel)}${name}:`
+		o += `${o && indentString.repeat(indentLevel)}${name}:`
 
 		if (typeof value == `bigint`)
 			o += ` ${value}n\n`

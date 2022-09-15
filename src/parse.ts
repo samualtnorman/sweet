@@ -88,7 +88,9 @@ export enum ExpressionKind {
 	Concatenate,
 	Enum,
 	Object,
-	Loop
+	Loop,
+	WrappingIncrement,
+	WrappingDecrement
 }
 
 export type Expression = Expression.Function | Expression.Boolean | Expression.Object | Expression.String |
@@ -100,7 +102,8 @@ export type Expression = Expression.Function | Expression.Boolean | Expression.O
 	Expression.Import | Expression.GetMember | Expression.Null | Expression.True | Expression.False |
 	Expression.UnsignedIntegerLiteral | Expression.SignedIntegerLiteral | Expression.Float16Literal |
 	Expression.Float32Literal | Expression.Float64Literal | Expression.Float128Literal | Expression.Array |
-	Expression.BinaryOperation | Expression.Enum | Expression.Loop
+	Expression.BinaryOperation | Expression.Enum | Expression.Loop | Expression.WrappingIncrement |
+	Expression.WrappingDecrement
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expression {
@@ -175,7 +178,7 @@ export namespace Expression {
 	export type Import = { kind: ExpressionKind.Import, path: string, as: string | ImportDestructureMember[] | undefined }
 	export type Array = { kind: ExpressionKind.Array, expressions: Expression[] }
 	export type Call = { kind: ExpressionKind.Call, called: Expression, argument: Expression }
-	export type Return = { kind: ExpressionKind.Return, expression: Expression }
+	export type Return = { kind: ExpressionKind.Return, expression: Expression | undefined }
 	export type SignedIntegerLiteral = { kind: ExpressionKind.SignedIntegerLiteral, value: bigint, bits: number }
 	export type UnsignedIntegerLiteral = { kind: ExpressionKind.UnsignedIntegerLiteral, value: bigint, bits: number }
 	export type Float16Literal = { kind: ExpressionKind.Float16Literal, value: number }
@@ -184,6 +187,8 @@ export namespace Expression {
 	export type Float128Literal = { kind: ExpressionKind.Float128Literal, value: number }
 	export type Increment = { kind: ExpressionKind.Increment, binding: Identifier | GetMember }
 	export type Decrement = { kind: ExpressionKind.Decrement, binding: Identifier | GetMember }
+	export type WrappingIncrement = { kind: ExpressionKind.WrappingIncrement, binding: Identifier | GetMember }
+	export type WrappingDecrement = { kind: ExpressionKind.WrappingDecrement, binding: Identifier | GetMember }
 	export type SignedIntegerType = { kind: ExpressionKind.SignedIntegerType, bits: number }
 	export type UnsignedIntegerType = { kind: ExpressionKind.UnsignedIntegerType, bits: number }
 	export type Float16Type = { kind: ExpressionKind.Float16Type }
@@ -200,7 +205,7 @@ export namespace Expression {
 	export type FunctionType = { kind: ExpressionKind.FunctionType, argumentType: Expression, returnType: Expression }
 	export type Any = { kind: ExpressionKind.Any }
 	export type MinusPrefix = { kind: ExpressionKind.MinusPrefix, expression: Expression }
-	export type While = { kind: ExpressionKind.While, condition: Expression, body: Expression }
+	export type While = { kind: ExpressionKind.While, condition: Expression, body: Expression[] }
 	export type Identifier = { kind: ExpressionKind.Identifier, name: string }
 	export type GetMember = { kind: ExpressionKind.GetMember, expression: Expression, name: string }
 	export type String = { kind: ExpressionKind.String, value: string }
@@ -314,11 +319,27 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 		let expression: Expression
 
 		switch (firstToken.kind) {
-			case TokenKind.If: {
+			case TokenKind.While: {
 				state.cursor++
 
 				const condition = parseExpression(false)
 
+				indentLevel++
+				expectNewline()
+
+				expression = {
+					kind: ExpressionKind.While,
+					condition,
+					body: [ ...parseExpressions(tokens, indentLevel, state) ]
+				}
+
+				indentLevel--
+			} break
+
+			case TokenKind.If: {
+				state.cursor++
+
+				const condition = parseExpression(false)
 				let truthyBranch: Expression
 
 				if (nextTokenIs(TokenKind.Then)) {
@@ -331,12 +352,13 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 					indentLevel--
 				}
 
+				if (nextTokenIs(TokenKind.Newline, TokenKind.Else))
+					expectNewline()
+
 				let falseyBranch: Expression | undefined
 
 				if (nextTokenIs(TokenKind.Else)) {
 					state.cursor++
-
-					console.log(tokens[state.cursor], nextTokenIs(TokenKind.Newline))
 
 					if (nextTokenIs(TokenKind.Newline)) {
 						indentLevel++
@@ -376,11 +398,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 
 			case TokenKind.Return: {
 				state.cursor++
-
-				expression = {
-					kind: ExpressionKind.Return,
-					expression: nextTokenIs(TokenKind.Newline) ? { kind: ExpressionKind.Null } : parseExpression(noParseAssign)
-				}
+				expression = { kind: ExpressionKind.Return, expression: maybeParseExpression(noParseAssign) }
 			} break
 
 			case TokenKind.Let: {
@@ -438,6 +456,16 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 						case TokenKind.Decrement: {
 							state.cursor++
 							expression = { kind: ExpressionKind.Decrement, binding: expression }
+						} break
+
+						case TokenKind.WrappingIncrement: {
+							state.cursor++
+							expression = { kind: ExpressionKind.WrappingIncrement, binding: expression }
+						} break
+
+						case TokenKind.WrappingDecrement: {
+							state.cursor++
+							expression = { kind: ExpressionKind.WrappingDecrement, binding: expression }
 						}
 					}
 				}

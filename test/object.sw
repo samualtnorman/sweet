@@ -1,1 +1,1 @@
-{ zero, one: Two, three = four, five: Six eight = seven }
+{ zero, one: Two, three = four, five: Six = seven }

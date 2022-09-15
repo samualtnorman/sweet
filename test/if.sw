@@ -26,4 +26,7 @@ if nineteen
 	twenty
 	twentyOne
 
+if twentyTwo then twentyThree
+else twentyFour
+
 twentyTwo
