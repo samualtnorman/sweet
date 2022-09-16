@@ -220,7 +220,7 @@ export function evaluateExpressionType(expression: Expression.Expression, contex
 			return resolvedType
 		}
 
-		case ExpressionKind.Assignment: {
+		case ExpressionKind.NormalAssign: {
 			assert(context.variables.has(expression.binding.name), HERE)
 
 			const variable = context.variables.get(expression.binding.name)!

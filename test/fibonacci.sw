@@ -1,13 +1,13 @@
-function generateFibonacciNumber n: i32 -> i32
-	let a: i32 = 0
-	let b: i32 = 1
+function generateFibonacciNumber n: u
+	let a = 0
+	let b = 1
 
 	while n
-		let sum: i32 = a +% b
+		let sum = a + b
 
 		a = b
 		b = sum
 
-		n--%
+		n--
 
 	return a

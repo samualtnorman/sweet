@@ -94,7 +94,7 @@ export const generateWASMModule = (expressions: Expression[]) => {
 				)
 			}
 
-			case ExpressionKind.Assignment: {
+			case ExpressionKind.NormalAssign: {
 				assert(expression.binding.kind == ExpressionKind.Identifier, HERE)
 
 				const reference = ensure(context.references.get(expression.binding.name), HERE)

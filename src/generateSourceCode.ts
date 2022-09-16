@@ -114,7 +114,7 @@ export function generateSourceFromNode(node: Node, indentString: string, indentL
 		case ExpressionKind.WrappingAdd:
 			return `(${generateSourceFromNode(node.left, indentString, indentLevel)} +% ${generateSourceFromNode(node.right, indentString, indentLevel)})`
 
-		case ExpressionKind.Assignment:
+		case ExpressionKind.NormalAssign:
 			return `${generateSourceFromNode(node.binding, indentString, indentLevel)} = ${generateSourceFromNode(node.value, indentString, indentLevel)}`
 
 		case ExpressionKind.Decrement:
