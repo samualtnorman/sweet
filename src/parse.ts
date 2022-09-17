@@ -1,48 +1,63 @@
 import { assert } from "@samual/lib"
 import { getIntegerLength } from "./shared"
-import { DataToken, DataTokenKinds, NonDataToken, printToken, Token, TokenKind } from "./tokenise"
+import { DataToken, DataTokenKind, NonDataToken, printToken, Token, TokenKind } from "./tokenise"
 
 // TODO complain when number literal too big or small for bits
 
 const DEBUG = false
 
-export type Expression = Expression.Function | Expression.Boolean | Expression.Object | Expression.String |
-	Expression.Identifier | Expression.Call | Expression.If | Expression.Assignment | Expression.Let |
-	Expression.Return | Expression.Increment | Expression.SignedIntegerType | Expression.UnsignedIntegerType |
-	Expression.Float16Type | Expression.Float32Type | Expression.Float64Type | Expression.Float128Type |
-	Expression.Null | Expression.Do | Expression.Void | Expression.FunctionType | Expression.Any |
-	Expression.MinusPrefix | Expression.While | Expression.Decrement | Expression.DeclaredImport |
-	Expression.Import | Expression.GetMember | Expression.Null | Expression.True | Expression.False |
-	Expression.UnsignedIntegerLiteral | Expression.SignedIntegerLiteral | Expression.Float16Literal |
-	Expression.Float32Literal | Expression.Float64Literal | Expression.Float128Literal | Expression.Array |
-	Expression.BinaryOperation | Expression.Enum | Expression.Loop | Expression.WrappingIncrement |
-	Expression.WrappingDecrement
+export type Expression = Expression.BinaryOperation | Expression.Assignment | Expression.Rement |
+	Expression.KeywordPrimitive | Expression.Array | Expression.BitwiseNot | Expression.Call |
+	Expression.DeclaredImport | Expression.Destructure | Expression.Do | Expression.Enum | Expression.Float16Literal |
+	Expression.Float32Literal | Expression.Float64Literal | Expression.Float128Literal | Expression.Function |
+	Expression.FunctionType | Expression.GetMember | Expression.Identifier | Expression.If | Expression.Import |
+	Expression.Let | Expression.LogicalNot | Expression.Loop | Expression.MinusPrefix | Expression.Object |
+	Expression.Return | Expression.SignedIntegerLiteral | Expression.SignedIntegerType | Expression.String |
+	Expression.UnsignedIntegerLiteral | Expression.UnsignedIntegerType | Expression.Void | Expression.While
 
 export type ImportDestructureMember = { name: string, as: string | ImportDestructureMember[] }
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expression {
 	export type BinaryOperation = {
-		kind: ExpressionKind.Add | ExpressionKind.Minus | ExpressionKind.Divide | ExpressionKind.Times |
-			ExpressionKind.Modulo | ExpressionKind.Power | ExpressionKind.WrappingAdd | ExpressionKind.WrappingMinus |
-			ExpressionKind.WrappingDivide | ExpressionKind.WrappingTimes | ExpressionKind.WrappingPower |
-			ExpressionKind.Is | ExpressionKind.SmallerThan | ExpressionKind.BiggerThan |
-			ExpressionKind.SmallerThanEquals | ExpressionKind.BiggerThanEquals | ExpressionKind.Equals |
-			ExpressionKind.NotEquals | ExpressionKind.ShiftLeft | ExpressionKind.ShiftRight |
-			ExpressionKind.WrappingShiftLeft | ExpressionKind.BitwiseAnd | ExpressionKind.BitwiseOr |
-			ExpressionKind.Xor | ExpressionKind.LogicalAnd | ExpressionKind.LogicalOr | ExpressionKind.NullishCoalesce |
-			ExpressionKind.Union | ExpressionKind.Concatenate | ExpressionKind.To | ExpressionKind.As |
-			ExpressionKind.Range
-
+		kind: ExpressionKind.Add | ExpressionKind.As | ExpressionKind.BiggerThan | ExpressionKind.BiggerThanEquals |
+			ExpressionKind.BitwiseAnd | ExpressionKind.BitwiseOr | ExpressionKind.Concatenate | ExpressionKind.Divide |
+			ExpressionKind.Equals | ExpressionKind.Is | ExpressionKind.LogicalAnd | ExpressionKind.LogicalOr |
+			ExpressionKind.Minus | ExpressionKind.Modulo | ExpressionKind.NotEquals | ExpressionKind.NullishCoalesce |
+			ExpressionKind.Power | ExpressionKind.Range | ExpressionKind.ShiftLeft | ExpressionKind.ShiftRight |
+			ExpressionKind.SmallerThan | ExpressionKind.SmallerThanEquals | ExpressionKind.Times | ExpressionKind.To |
+			ExpressionKind.Union | ExpressionKind.WrappingAdd | ExpressionKind.WrappingDivide |
+			ExpressionKind.WrappingMinus | ExpressionKind.WrappingPower | ExpressionKind.WrappingShiftLeft |
+			ExpressionKind.WrappingTimes | ExpressionKind.Xor
 		left: Expression
 		right: Expression
 	}
 
-	export type Let = {
-		kind: ExpressionKind.Let
-		binding: Identifier | Destructure
-		type: Expression | undefined
-		initialValue: Expression | undefined
+	export type Assignment = {
+		kind: ExpressionKind.BitwiseAndAssign | ExpressionKind.BitwiseOrAssign | ExpressionKind.ConcatenateAssign |
+			ExpressionKind.LogicalAndAssign | ExpressionKind.LogicalOrAssign | ExpressionKind.NormalAssign |
+			ExpressionKind.NullishCoalesceAssign | ExpressionKind.ShiftLeftAssign |
+			ExpressionKind.ShiftRightAssign | ExpressionKind.WrappingShiftLeftAssign | ExpressionKind.XorAssign
+		binding: Identifier | GetMember | Destructure
+		value: Expression
+	}
+
+	export type Rement = {
+		kind: ExpressionKind.Increment | ExpressionKind.Decrement | ExpressionKind.WrappingIncrement |
+			ExpressionKind.WrappingDecrement
+		binding: Identifier | GetMember
+	}
+
+	export type KeywordPrimitive = {
+		kind: ExpressionKind.Any | ExpressionKind.Boolean | ExpressionKind.False | ExpressionKind.Float128Type |
+			ExpressionKind.Float16Type | ExpressionKind.Float32Type | ExpressionKind.Float64Type | ExpressionKind.Null |
+			ExpressionKind.ObjectType | ExpressionKind.True
+	}
+
+	export type DeclaredImport = {
+		kind: ExpressionKind.DeclaredImport
+		module: string
+		members: { name: string, as: string, type: Expression }[]
 	}
 
 	export type Destructure = {
@@ -50,12 +65,8 @@ export namespace Expression {
 		members: { name: string, as: Identifier | Destructure, defaultValue: Expression | undefined }[]
 	}
 
-	export type If = {
-		kind: ExpressionKind.If
-		condition: Expression
-		truthyBranch: Expression
-		falseyBranch: Expression | undefined
-	}
+	export type Enum =
+		{ kind: ExpressionKind.Enum, name: string, members: { name: string, type: Expression | undefined }[] }
 
 	export type Function = {
 		kind: ExpressionKind.Function
@@ -67,20 +78,21 @@ export namespace Expression {
 		body: Expression[]
 	}
 
-	export type DeclaredImport = {
-		kind: ExpressionKind.DeclaredImport
-		module: string
-		members: { name: string, as: string, type: Expression }[]
+	export type If = {
+		kind: ExpressionKind.If
+		condition: Expression
+		truthyBranch: Expression
+		falseyBranch: Expression | undefined
 	}
 
-	export type Assignment = {
-		kind: ExpressionKind.NormalAssign | ExpressionKind.ShiftLeftAssign | ExpressionKind.ShiftRightAssign |
-			ExpressionKind.WrappingShiftLeftAssign | ExpressionKind.BitwiseAndAssign | ExpressionKind.BitwiseOrAssign |
-			ExpressionKind.XorAssign | ExpressionKind.LogicalAndAssign | ExpressionKind.LogicalOrAssign |
-			ExpressionKind.NullishCoalesceAssign | ExpressionKind.ConcatenateAssign | ExpressionKind.Range
+	export type Import =
+		{ kind: ExpressionKind.Import, path: string, as: string | ImportDestructureMember[] | undefined }
 
-		binding: Identifier | GetMember | Destructure
-		value: Expression
+	export type Let = {
+		kind: ExpressionKind.Let
+		binding: Identifier | Destructure
+		type: Expression | undefined
+		initialValue: Expression | undefined
 	}
 
 	export type Object = {
@@ -88,57 +100,41 @@ export namespace Expression {
 		entries: { name: string, type: Expression | undefined, value: Expression | undefined }[]
 	}
 
-	export type Enum = { kind: ExpressionKind.Enum, name: string, members: { name: string, type: Expression | undefined }[] }
-	export type Import = { kind: ExpressionKind.Import, path: string, as: string | ImportDestructureMember[] | undefined }
 	export type Array = { kind: ExpressionKind.Array, expressions: Expression[] }
+	export type BitwiseNot = { kind: ExpressionKind.BitwiseNot, expression: Expression }
 	export type Call = { kind: ExpressionKind.Call, called: Expression, argument: Expression }
-	export type Return = { kind: ExpressionKind.Return, expression: Expression | undefined }
-	export type SignedIntegerLiteral = { kind: ExpressionKind.SignedIntegerLiteral, value: bigint, bits: number }
-	export type UnsignedIntegerLiteral = { kind: ExpressionKind.UnsignedIntegerLiteral, value: bigint, bits: number }
+	export type Do = { kind: ExpressionKind.Do, body: Expression[] }
 	export type Float16Literal = { kind: ExpressionKind.Float16Literal, value: number }
 	export type Float32Literal = { kind: ExpressionKind.Float32Literal, value: number }
 	export type Float64Literal = { kind: ExpressionKind.Float64Literal, value: number }
 	export type Float128Literal = { kind: ExpressionKind.Float128Literal, value: number }
-	export type Increment = { kind: ExpressionKind.Increment, binding: Identifier | GetMember }
-	export type Decrement = { kind: ExpressionKind.Decrement, binding: Identifier | GetMember }
-	export type WrappingIncrement = { kind: ExpressionKind.WrappingIncrement, binding: Identifier | GetMember }
-	export type WrappingDecrement = { kind: ExpressionKind.WrappingDecrement, binding: Identifier | GetMember }
-	export type SignedIntegerType = { kind: ExpressionKind.SignedIntegerType, bits: number }
-	export type UnsignedIntegerType = { kind: ExpressionKind.UnsignedIntegerType, bits: number }
-	export type Float16Type = { kind: ExpressionKind.Float16Type }
-	export type Float32Type = { kind: ExpressionKind.Float32Type }
-	export type Float64Type = { kind: ExpressionKind.Float64Type }
-	export type Float128Type = { kind: ExpressionKind.Float128Type }
-	export type Null = { kind: ExpressionKind.Null }
-	export type Do = { kind: ExpressionKind.Do, body: Expression[] }
-	export type Loop = { kind: ExpressionKind.Loop, body: Expression[] }
-	export type Void = { kind: ExpressionKind.Void, expression: Expression }
-	export type True = { kind: ExpressionKind.True }
-	export type False = { kind: ExpressionKind.False }
-	export type Boolean = { kind: ExpressionKind.Boolean }
 	export type FunctionType = { kind: ExpressionKind.FunctionType, argumentType: Expression, returnType: Expression }
-	export type Any = { kind: ExpressionKind.Any }
-	export type MinusPrefix = { kind: ExpressionKind.MinusPrefix, expression: Expression }
-	export type While = { kind: ExpressionKind.While, condition: Expression, body: Expression[] }
-	export type Identifier = { kind: ExpressionKind.Identifier, name: string }
 	export type GetMember = { kind: ExpressionKind.GetMember, expression: Expression, name: string }
-	export type String = { kind: ExpressionKind.String, value: string }
-	export type BitwiseNot = { kind: ExpressionKind.BitwiseNot, expression: Expression }
+	export type Identifier = { kind: ExpressionKind.Identifier, name: string }
 	export type LogicalNot = { kind: ExpressionKind.LogicalNot, expression: Expression }
+	export type Loop = { kind: ExpressionKind.Loop, body: Expression[] }
+	export type MinusPrefix = { kind: ExpressionKind.MinusPrefix, expression: Expression }
+	export type Return = { kind: ExpressionKind.Return, expression: Expression | undefined }
+	export type SignedIntegerType = { kind: ExpressionKind.SignedIntegerType, bits: number }
+	export type SignedIntegerLiteral = { kind: ExpressionKind.SignedIntegerLiteral, value: bigint, bits: number }
+	export type String = { kind: ExpressionKind.String, value: string }
+	export type UnsignedIntegerType = { kind: ExpressionKind.UnsignedIntegerType, bits: number }
+	export type UnsignedIntegerLiteral = { kind: ExpressionKind.UnsignedIntegerLiteral, value: bigint, bits: number }
+	export type Void = { kind: ExpressionKind.Void, expression: Expression }
+	export type While = { kind: ExpressionKind.While, condition: Expression, body: Expression[] }
 }
 
 export enum ExpressionKind {
-	Identifier, NormalAssign, Call, Add, Let, Minus, IfStatement, If, Do, Function, Parameter, Return,
-	SignedIntegerLiteral, UnsignedIntegerLiteral, Increment, SignedIntegerType, UnsignedIntegerType, Float16Type,
-	Float32Type, Float64Type, Float128Type, Null, To, As, Or, Float16Literal, Float32Literal, Float64Literal,
-	Float128Literal, Void, True, False, Boolean, ObjectType, FunctionType, Any, Times, MinusPrefix, Divide, While,
-	WrappingAdd, Decrement, Equal, NotEqual, WrappingTimes, DeclaredImport, DeclaredImportMember, Array, Import,
-	ImportDestructure, Destructure, GetMember, String, BitwiseNot, LogicalNot, Modulo, Power, WrappingMinus,
-	WrappingDivide, WrappingPower, Is, SmallerThan, BiggerThan, SmallerThanEquals, BiggerThanEquals, Equals, NotEquals,
-	ShiftLeft, ShiftRight, WrappingShiftLeft, BitwiseAnd, BitwiseOr, Xor, LogicalAnd, LogicalOr, NullishCoalesce, Union,
-	Concatenate, Enum, Object, Loop, WrappingIncrement, WrappingDecrement, ShiftLeftAssign, ShiftRightAssign,
-	WrappingShiftLeftAssign, BitwiseAndAssign, BitwiseOrAssign, XorAssign, LogicalAndAssign, LogicalOrAssign,
-	NullishCoalesceAssign, ConcatenateAssign, Range
+	Add, Any, Array, As, BiggerThan, BiggerThanEquals, BitwiseAnd, BitwiseAndAssign, BitwiseNot, BitwiseOr,
+	BitwiseOrAssign, Boolean, Call, Concatenate, ConcatenateAssign, DeclaredImport, Decrement, Destructure, Divide, Do,
+	Enum, Equals, False, Float16Literal, Float16Type, Float32Literal, Float32Type, Float64Literal, Float64Type,
+	Float128Literal, Float128Type, Function, FunctionType, GetMember, Identifier, If, Import, Increment, Is, Let,
+	LogicalAnd, LogicalAndAssign, LogicalNot, LogicalOr, LogicalOrAssign, Loop, Minus, MinusPrefix, Modulo,
+	NormalAssign, NotEquals, Null, NullishCoalesce, NullishCoalesceAssign, Object, ObjectType, Power, Range, Return,
+	ShiftLeft, ShiftLeftAssign, ShiftRight, ShiftRightAssign, SignedIntegerLiteral, SignedIntegerType, SmallerThan,
+	SmallerThanEquals, String, Times, To, True, Union, UnsignedIntegerLiteral, UnsignedIntegerType, Void, While,
+	WrappingAdd, WrappingDecrement, WrappingDivide, WrappingIncrement, WrappingMinus, WrappingPower, WrappingShiftLeft,
+	WrappingShiftLeftAssign, WrappingTimes, Xor, XorAssign
 }
 
 export class ParseError extends Error {
@@ -661,7 +657,7 @@ export const parseExpressions = function* (tokens: Token[], indentLevel: number,
 			throw new WrongIndentLevelError(newline, indentLevel)
 	}
 
-	const expectToken = <K extends TokenKind>(expectedKind: K): K extends DataTokenKinds ? DataToken : NonDataToken => {
+	const expectToken = <K extends TokenKind>(expectedKind: K): K extends DataTokenKind ? DataToken : NonDataToken => {
 		const token = tokens[state.cursor]
 
 		if (token?.kind != expectedKind)
