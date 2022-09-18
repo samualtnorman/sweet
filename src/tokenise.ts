@@ -13,7 +13,7 @@ export type DataTokenKind = TokenKind.BinaryNumber | TokenKind.Error | TokenKind
 	TokenKind.UnsignedIntegerType
 
 export enum TokenKind {
-	Abstract, Add, AddAssign, And, Any, Arguments, Arrow, As, Assert, Assign, Async, Await, Become, BiggerThan,
+	Abstract = 1, Add, AddAssign, And, Any, Arguments, Arrow, As, Assert, Assign, Async, Await, Become, BiggerThan,
 	BiggerThanEquals, BinaryNumber, BitwiseAnd, BitwiseAndAssign, BitwiseNot, BitwiseOr, BitwiseOrAssign, Block,
 	Boolean, Box, Boxed, Break, Catch, Character, Class, Clean, CloseBracket, CloseSquareBracket, CloseSquiglyBracket,
 	Colon, Comma, Comptime, Concatenate, ConcatenateAssign, Constant, Continue, Debugger, Declare, DeclareFunction,
@@ -189,27 +189,27 @@ export const NonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenK
 	{ regex: /^\?\./, tokenKind: TokenKind.OptionalChain },
 	{ regex: /^\?/, tokenKind: TokenKind.Union },
 	{ regex: /^\/=/, tokenKind: TokenKind.DivideAssign },
-	{ regex: /^\//, tokenKind: TokenKind.Divide },
 	{ regex: /^\/%=/, tokenKind: TokenKind.WrappingDivideAssign },
 	{ regex: /^\/%/, tokenKind: TokenKind.WrappingDivide },
+	{ regex: /^\//, tokenKind: TokenKind.Divide },
 	{ regex: /^\.\.\./, tokenKind: TokenKind.DotDotDot },
 	{ regex: /^\.\.=/, tokenKind: TokenKind.ConcatenateAssign },
 	{ regex: /^\.\./, tokenKind: TokenKind.Concatenate },
 	{ regex: /^\./, tokenKind: TokenKind.Dot },
-	{ regex: /^\+\+/, tokenKind: TokenKind.Increment },
 	{ regex: /^\+\+%/, tokenKind: TokenKind.WrappingIncrement },
+	{ regex: /^\+\+/, tokenKind: TokenKind.Increment },
 	{ regex: /^\+=/, tokenKind: TokenKind.AddAssign },
-	{ regex: /^\+/, tokenKind: TokenKind.Add },
 	{ regex: /^\+%=/, tokenKind: TokenKind.WrappingAddAssign },
 	{ regex: /^\+%/, tokenKind: TokenKind.WrappingAdd },
+	{ regex: /^\+/, tokenKind: TokenKind.Add },
 	{ regex: /^\*\*=/, tokenKind: TokenKind.PowerAssign },
-	{ regex: /^\*\*/, tokenKind: TokenKind.Power },
 	{ regex: /^\*\*%=/, tokenKind: TokenKind.WrappingPowerAssign },
 	{ regex: /^\*\*%/, tokenKind: TokenKind.WrappingPower },
+	{ regex: /^\*\*/, tokenKind: TokenKind.Power },
 	{ regex: /^\*=/, tokenKind: TokenKind.TimesAssign },
-	{ regex: /^\*/, tokenKind: TokenKind.Times },
 	{ regex: /^\*%=/, tokenKind: TokenKind.WrappingTimesAssign },
 	{ regex: /^\*%/, tokenKind: TokenKind.WrappingTimes },
+	{ regex: /^\*/, tokenKind: TokenKind.Times },
 	{ regex: /^\)/, tokenKind: TokenKind.CloseBracket },
 	{ regex: /^\(/, tokenKind: TokenKind.OpenBracket },
 	{ regex: /^>>=/, tokenKind: TokenKind.ShiftRightAssign },
@@ -222,23 +222,23 @@ export const NonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenK
 	{ regex: /^<=>/, tokenKind: TokenKind.Spaceship },
 	{ regex: /^<=/, tokenKind: TokenKind.SmallerThanEquals },
 	{ regex: /^<<=/, tokenKind: TokenKind.ShiftLeftAssign },
-	{ regex: /^<</, tokenKind: TokenKind.ShiftLeft },
 	{ regex: /^<<%=/, tokenKind: TokenKind.WrappingShiftLeftAssign },
 	{ regex: /^<<%/, tokenKind: TokenKind.WrappingShiftLeft },
+	{ regex: /^<</, tokenKind: TokenKind.ShiftLeft },
 	{ regex: /^</, tokenKind: TokenKind.SmallerThan },
 	{ regex: /^:=/, tokenKind: TokenKind.Walrus },
 	{ regex: /^:/, tokenKind: TokenKind.Colon },
 	{ regex: /^->/, tokenKind: TokenKind.Arrow },
-	{ regex: /^-/, tokenKind: TokenKind.Minus },
-	{ regex: /^--/, tokenKind: TokenKind.Decrement },
 	{ regex: /^--%/, tokenKind: TokenKind.WrappingDecrement },
+	{ regex: /^--/, tokenKind: TokenKind.Decrement },
 	{ regex: /^-%=/, tokenKind: TokenKind.WrappingMinusAssign },
 	{ regex: /^-%/, tokenKind: TokenKind.WrappingMinus },
+	{ regex: /^-/, tokenKind: TokenKind.Minus },
 	{ regex: /^,/, tokenKind: TokenKind.Comma },
 	{ regex: /^&=/, tokenKind: TokenKind.BitwiseAndAssign },
-	{ regex: /^&/, tokenKind: TokenKind.BitwiseAnd },
 	{ regex: /^&&=/, tokenKind: TokenKind.LogicalAndAssign },
 	{ regex: /^&&/, tokenKind: TokenKind.LogicalAnd },
+	{ regex: /^&/, tokenKind: TokenKind.BitwiseAnd },
 	{ regex: /^%=/, tokenKind: TokenKind.ModuloAssign },
 	{ regex: /^%/, tokenKind: TokenKind.Modulo },
 	{ regex: /^!=/, tokenKind: TokenKind.NotEquals },
@@ -276,7 +276,7 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 		if ((match = /^((?:(?:\/\/.*)?\r?\n)+)(\t*)/.exec(code.slice(index)))) {
 			yield createToken(TokenKind.Newline, match[2]!)
 			line += match[1]!.split(``).filter(character => character == `\n`).length
-			column = (match[2]!.length * 4) + 1
+			column = match[2]!.length + 1
 			index += match[0]!.length
 
 			if (code[index] == ` `)

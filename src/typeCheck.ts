@@ -1,4 +1,3 @@
-import { assert } from "@samual/lib"
 import { Expression, ExpressionKind } from "./parse"
 import printExpression from "./printExpression"
 
@@ -28,10 +27,30 @@ export enum TypeKind {
 	Float32, Float64, Float128, Union, Object, Function, Any
 }
 
-export const typeCheck = (expressions: Expression[]) => {
+class TypeError extends Error {
+	static {
+		Object.defineProperty(this.prototype, `name`, { value: this.name })
+	}
+
+	constructor(
+		public readonly fileName: string,
+		public readonly expression: Expression,
+		message: string
+	) {
+		super(`${message} at ${fileName}:${expression.line}:${expression.column}`)
+	}
+}
+
+export const typeCheck = (expressions: Expression[], fileName: string) => {
 	const locals = new Map<string, Type>()
 
 	const evaluateExpressionType = (expression: Expression): Type => {
+		// stupid typescript requires an explicit type annotation here for some reason
+		const assert: (value: any, message: string) => asserts value = (value, message) => {
+			if (!value)
+				throw new TypeError(fileName, expression, message)
+		}
+
 		switch (expression.kind) {
 			case ExpressionKind.Function: {
 				assert(expression.parameter.kind == ExpressionKind.Identifier, `${HERE} TODO handle object`)
@@ -86,7 +105,7 @@ export const typeCheck = (expressions: Expression[]) => {
 				if (locals.has(expression.name))
 					return locals.get(expression.name)!
 
-				throw new Error(`no variable "${expression.name}"`)
+				throw new Error(`no variable "${expression.name}" at ${fileName}:${expression.line}:${expression.column}`)
 			}
 
 			default:

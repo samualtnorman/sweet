@@ -24,8 +24,9 @@ import typeCheck from "./dist/typeCheck.js"
 // 		})
 // }
 
-const sourceCode = await readFile(`test/fibonacci.sw`, { encoding: `utf-8` })
+const fileName = `test/fibonacci.sw`
+const sourceCode = await readFile(fileName, { encoding: `utf-8` })
 const tokens = [ ...tokenise(sourceCode) ]
-const expressions = [ ...parse(tokens) ]
+const expressions = [ ...parse(tokens, fileName) ]
 
-typeCheck(expressions)
+typeCheck(expressions, fileName)
