@@ -18,8 +18,6 @@ export type Expression = Expression.BinaryOperation | Expression.Assignment | Ex
 export type ImportDestructureMember = { name: string, as: string | ImportDestructureMember[] }
 export type ExpressionBase = { index: number, line: number, column: number }
 
-declare let expression: Expression
-
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expression {
 	export type BinaryOperation = ExpressionBase & {
