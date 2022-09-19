@@ -53,8 +53,8 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 
 		switch (expression.kind) {
 			case ExpressionKind.Function: {
-				assert(expression.parameter.kind == ExpressionKind.Identifier, `${HERE} TODO handle object`)
-				assert(expression.parameterType, `${HERE} TODO infer type`)
+				assert(expression.parameter.kind == ExpressionKind.Identifier, `TODO handle object`)
+				assert(expression.parameterType, `TODO infer type`)
 				locals.set(expression.parameter.name, evaluateExpression(expression.parameterType))
 
 				if (expression.returnType) {
@@ -71,13 +71,14 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			}
 
 			case ExpressionKind.Let: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, `${HERE} TODO destructure`)
-				assert(expression.type, `${HERE} TODO infer type`)
-				assert(expression.initialValue, `${HERE} TODO no initial value`)
+				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`)
+				assert(expression.initialValue, `TODO no initial value`)
 				// TODO variable not having given or inferred type
-				// locals.set(expression.binding.name, evaluateExpression(expression.type))
 				// TODO check if type of the expression is assignable to the given type
-				evaluateExpressionType(expression.initialValue)
+
+				if (expression.type) {
+
+				}
 
 				return { kind: TypeKind.Null }
 			}
@@ -94,7 +95,7 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			}
 
 			case ExpressionKind.NormalAssign: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, `${HERE} TODO destructure`)
+				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`)
 				// TODO check if the type of the value is assignable to the binding
 				evaluateExpressionType(expression.value)
 
@@ -109,7 +110,7 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			}
 
 			default:
-				throw new Error(`${HERE} TODO handle ${ExpressionKind[expression.kind]}`)
+				throw new Error(`TODO handle ${ExpressionKind[expression.kind]}`)
 		}
 	}
 
@@ -163,7 +164,7 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			default: {
 				console.log(printExpression(expression))
 
-				throw new Error(`${HERE} ${ExpressionKind[expression.kind]}`)
+				throw new Error(`${ExpressionKind[expression.kind]}`)
 			}
 		}
 	}

@@ -1,11 +1,11 @@
-import { Type, TypeKind } from "."
+import { Type, TypeKind } from "./"
 
-export function areTypesCompatible(subject: Type, target: Type): boolean {
+export const isTypeCompatible = (subject: Type, target: Type): boolean => {
 	if (target.kind == TypeKind.Any)
 		return true
 
 	if (target.kind == TypeKind.Union)
-		return target.members.some(target => areTypesCompatible(subject, target))
+		return target.members.some(target => isTypeCompatible(subject, target))
 
 	switch (subject.kind) {
 		case TypeKind.Null:
@@ -76,7 +76,7 @@ export function areTypesCompatible(subject: Type, target: Type): boolean {
 			return target.kind == TypeKind.Float128
 
 		case TypeKind.Union:
-			return subject.members.every(subject => areTypesCompatible(subject, target))
+			return subject.members.every(subject => isTypeCompatible(subject, target))
 
 		case TypeKind.Object: {
 			if (target.kind != TypeKind.Object)
@@ -84,7 +84,7 @@ export function areTypesCompatible(subject: Type, target: Type): boolean {
 
 			return [ ...target.properties ].every(([ propertyName, target ]) => {
 				if (subject.properties.has(propertyName))
-					return areTypesCompatible(subject.properties.get(propertyName)!, target)
+					return isTypeCompatible(subject.properties.get(propertyName)!, target)
 
 				return false
 			})
@@ -95,11 +95,11 @@ export function areTypesCompatible(subject: Type, target: Type): boolean {
 				return false
 
 			for (const [ parameterIndex, parameterType ] of subject.parameters.entries()) {
-				if (!areTypesCompatible(parameterType, target.parameters[parameterIndex]!))
+				if (!isTypeCompatible(parameterType, target.parameters[parameterIndex]!))
 					return false
 			}
 
-			return areTypesCompatible(subject.returnType, target.returnType)
+			return isTypeCompatible(subject.returnType, target.returnType)
 		}
 
 		case TypeKind.Any:
@@ -107,4 +107,4 @@ export function areTypesCompatible(subject: Type, target: Type): boolean {
 	}
 }
 
-export default areTypesCompatible
+export default isTypeCompatible

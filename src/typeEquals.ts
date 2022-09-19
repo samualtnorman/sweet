@@ -1,6 +1,6 @@
-import { Type, TypeKind } from "."
+import { Type, TypeKind } from "./typeCheck"
 
-export function areTypesTheSame(a: Type, b: Type): boolean {
+export const typeEquals = (a: Type, b: Type): boolean => {
 	if (a.kind != b.kind)
 		return false
 
@@ -30,13 +30,16 @@ export function areTypesTheSame(a: Type, b: Type): boolean {
 				return false
 
 			for (const [ index, aParameterType ] of a.parameters.entries()) {
-				if (!areTypesTheSame(aParameterType, (b as Type.Function).parameters[index]!))
+				if (!typeEquals(aParameterType, (b as Type.Function).parameters[index]!))
 					return false
 			}
 
-			return areTypesTheSame(a.returnType, (b as Type.Function).returnType)
+			return typeEquals(a.returnType, (b as Type.Function).returnType)
 		}
+
+		default:
+			throw new Error(`TODO handle ${TypeKind[a.kind]}`)
 	}
 }
 
-export default areTypesTheSame
+export default typeEquals

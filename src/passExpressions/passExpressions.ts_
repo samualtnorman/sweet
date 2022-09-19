@@ -1,4 +1,4 @@
-import { assertTypesAreCompatible, Context, TypeKind } from "."
+import { assertTypesAreCompatible, Context, TypeKind } from "./"
 import { Expression } from "../parse"
 import evaluateExpressionType from "./evaluateExpressionType"
 

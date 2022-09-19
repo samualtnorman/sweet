@@ -1,5 +1,5 @@
-export { areTypesCompatible } from "./areTypesCompatible"
-export { areTypesTheSame } from "./areTypesTheSame"
+export { isTypeCompatible as areTypesCompatible } from "./isTypeCompatible"
+export { typeEquals as areTypesTheSame } from "../typeEquals"
 export { castExpression } from "./castExpression"
 export { evaluateExpression } from "./evaluateExpression"
 export { evaluateExpressionType } from "./evaluateExpressionType"
@@ -9,7 +9,7 @@ export { typeToExpression } from "./typeToExpression"
 
 import { assert } from "@samual/lib"
 import { Expression } from "../parse"
-import areTypesCompatible from "./areTypesCompatible"
+import isTypeCompatible from "./isTypeCompatible"
 import passExpressions_ from "./passExpressions"
 import printType from "./printType"
 
@@ -87,5 +87,5 @@ export function printContext(context: Context, indentString = `\t`): string {
 }
 
 export function assertTypesAreCompatible(subject: Type, target: Type) {
-	assert(areTypesCompatible(subject, target), `${printType(subject)} is not compatible with ${printType(target)}`)
+	assert(isTypeCompatible(subject, target), `${printType(subject)} is not compatible with ${printType(target)}`)
 }

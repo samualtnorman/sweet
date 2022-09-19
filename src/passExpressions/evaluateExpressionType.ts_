@@ -1,5 +1,5 @@
 import { assert } from "@samual/lib"
-import { assertTypesAreCompatible, Context, printContext, Type, TypeKind } from "."
+import { assertTypesAreCompatible, Context, printContext, Type, TypeKind } from "./"
 import { generateSourceFromNode } from "../generateSourceCode"
 import { Expression, ExpressionKind } from "../parse"
 import castExpression from "./castExpression"

@@ -79,6 +79,9 @@ export namespace Expression {
 		body: Expression[]
 	}
 
+	export type FunctionType = ExpressionBase &
+		{ kind: ExpressionKind.FunctionType, argumentType: Expression, returnType: Expression }
+
 	export type If = ExpressionBase & {
 		kind: ExpressionKind.If
 		condition: Expression
@@ -101,6 +104,12 @@ export namespace Expression {
 		entries: { name: string, type: Expression | undefined, value: Expression | undefined }[]
 	}
 
+	export type SignedIntegerLiteral = ExpressionBase &
+		{ kind: ExpressionKind.SignedIntegerLiteral, value: bigint, bits: number }
+
+	export type UnsignedIntegerLiteral = ExpressionBase &
+		{ kind: ExpressionKind.UnsignedIntegerLiteral, value: bigint, bits: number }
+
 	export type Array = ExpressionBase & { kind: ExpressionKind.Array, expressions: Expression[] }
 	export type BitwiseNot = ExpressionBase & { kind: ExpressionKind.BitwiseNot, expression: Expression }
 	export type Call = ExpressionBase & { kind: ExpressionKind.Call, called: Expression, argument: Expression }
@@ -109,7 +118,6 @@ export namespace Expression {
 	export type Float32Literal = ExpressionBase & { kind: ExpressionKind.Float32Literal, value: number }
 	export type Float64Literal = ExpressionBase & { kind: ExpressionKind.Float64Literal, value: number }
 	export type Float128Literal = ExpressionBase & { kind: ExpressionKind.Float128Literal, value: number }
-	export type FunctionType = ExpressionBase & { kind: ExpressionKind.FunctionType, argumentType: Expression, returnType: Expression }
 	export type GetMember = ExpressionBase & { kind: ExpressionKind.GetMember, expression: Expression, name: string }
 	export type Identifier = ExpressionBase & { kind: ExpressionKind.Identifier, name: string }
 	export type LogicalNot = ExpressionBase & { kind: ExpressionKind.LogicalNot, expression: Expression }
@@ -117,10 +125,8 @@ export namespace Expression {
 	export type MinusPrefix = ExpressionBase & { kind: ExpressionKind.MinusPrefix, expression: Expression }
 	export type Return = ExpressionBase & { kind: ExpressionKind.Return, expression: Expression | undefined }
 	export type SignedIntegerType = ExpressionBase & { kind: ExpressionKind.SignedIntegerType, bits: number }
-	export type SignedIntegerLiteral = ExpressionBase & { kind: ExpressionKind.SignedIntegerLiteral, value: bigint, bits: number }
 	export type String = ExpressionBase & { kind: ExpressionKind.String, value: string }
 	export type UnsignedIntegerType = ExpressionBase & { kind: ExpressionKind.UnsignedIntegerType, bits: number }
-	export type UnsignedIntegerLiteral = ExpressionBase & { kind: ExpressionKind.UnsignedIntegerLiteral, value: bigint, bits: number }
 	export type Void = ExpressionBase & { kind: ExpressionKind.Void, expression: Expression }
 	export type While = ExpressionBase & { kind: ExpressionKind.While, condition: Expression, body: Expression[] }
 }
@@ -151,9 +157,11 @@ export class ParseError extends Error {
 		if (expectedTypes) {
 			assert(expectedTypes.length, `expectedTypes array must not be empty`)
 
-			if (token)
-				super(`unexpected ${printToken(token)} at ${fileName}:${token.line}:${token.column}, expected ${getExpectedTypeNames(expectedTypes)}`)
-			else
+			if (token) {
+				const location = `${fileName}:${token.line}:${token.column}`
+
+				super(`unexpected ${printToken(token)} at ${location}, expected ${getExpectedTypeNames(expectedTypes)}`)
+			} else
 				super(`unexpected end, expected ${getExpectedTypeNames(expectedTypes)}`)
 		} else if (token)
 			super(`unexpected ${printToken(token)} at ${fileName}:${token.line}:${token.column}`)
@@ -178,7 +186,7 @@ export class WrongIndentLevelError extends ParseError {
 		super(undefined, fileName, [ TokenKind.Newline ])
 
 		this.message =
-			`wrong indent level, expected ${expected} but got ${token.data.length} at ${fileName}:${token.line + 1}:${1}`
+			`wrong indent level of ${token.data.length} at ${fileName}:${token.line + 1}:${1}, expected ${expected}`
 	}
 }
 

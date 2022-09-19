@@ -1,5 +1,5 @@
 import { assert } from "@samual/lib"
-import { assertTypesAreCompatible, Type, TypeKind } from "."
+import { assertTypesAreCompatible, Type, TypeKind } from "./"
 import printType from "./printType"
 
 export function resolveTypes(...types: Type[]): Type {

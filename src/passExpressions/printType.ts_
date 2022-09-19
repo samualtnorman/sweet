@@ -1,4 +1,4 @@
-import { Type, TypeKind } from "."
+import { Type, TypeKind } from "./index"
 
 export function printType(type: Type): string {
 	switch (type.kind) {

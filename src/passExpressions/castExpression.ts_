@@ -2,14 +2,14 @@ import { assert } from "@samual/lib"
 import { assertTypesAreCompatible, Context, printContext, Type, TypeKind } from "."
 import { generateSourceFromNode } from "../generateSourceCode"
 import { Expression, ExpressionKind } from "../parse"
-import areTypesTheSame from "./areTypesTheSame"
+import typeEquals from "./typeEquals"
 import evaluateExpressionType from "./evaluateExpressionType"
 import printType from "./printType"
 import typeToExpression from "./typeToExpression"
 
 const DEBUG = false
 
-export function castExpression(expression: Expression.Expression, targetType: Type, context: Context): Expression.Expression {
+export const castExpression = (expression: Expression, targetType: Type, context: Context): Expression => {
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	if (DEBUG) {
 		console.log(`DEBUG castExpression(
@@ -87,7 +87,7 @@ export function castExpression(expression: Expression.Expression, targetType: Ty
 		case ExpressionKind.Identifier: {
 			const expressionType = evaluateExpressionType(expression, context)
 
-			if (areTypesTheSame(expressionType, targetType))
+			if (typeEquals(expressionType, targetType))
 				return { kind: ExpressionKind.As, left: expression, right: typeToExpression(expressionType) }
 
 			assertTypesAreCompatible(expressionType, targetType)
@@ -127,7 +127,7 @@ export function castExpression(expression: Expression.Expression, targetType: Ty
 
 			const expressionType = evaluateExpressionType(expression, context)
 
-			if (areTypesTheSame(expressionType, targetType))
+			if (typeEquals(expressionType, targetType))
 				return expression
 
 			assertTypesAreCompatible(expressionType, targetType)
@@ -202,7 +202,7 @@ export function castExpression(expression: Expression.Expression, targetType: Ty
 		default: {
 			const expressionType = evaluateExpressionType(expression, context)
 
-			if (areTypesTheSame(expressionType, targetType))
+			if (typeEquals(expressionType, targetType))
 				return expression
 
 			assertTypesAreCompatible(expressionType, targetType)
