@@ -51,6 +51,130 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				throw new TypeError(fileName, expression, message)
 		}
 
+		const resolveTypes = (...types: Type[]): Type => {
+			const typeKinds = new Set(types.map(({ kind }) => kind))
+
+			if (typeKinds.has(TypeKind.Float128)) {
+				for (const type of types)
+					assertTypesAreCompatible(type, { kind: TypeKind.Float128 })
+
+				return { kind: TypeKind.Float128 }
+			}
+
+			if (typeKinds.has(TypeKind.Float64)) {
+				for (const type of types)
+					assertTypesAreCompatible(type, { kind: TypeKind.Float64 })
+
+				return { kind: TypeKind.Float64 }
+			}
+
+			if (typeKinds.has(TypeKind.Float32)) {
+				for (const type of types)
+					assertTypesAreCompatible(type, { kind: TypeKind.Float32 })
+
+				return { kind: TypeKind.Float32 }
+			}
+
+			if (typeKinds.has(TypeKind.Float16)) {
+				for (const type of types)
+					assertTypesAreCompatible(type, { kind: TypeKind.Float16 })
+
+				return { kind: TypeKind.Float16 }
+			}
+
+			if (typeKinds.has(TypeKind.SignedInteger)) {
+				let bits = 0
+
+				for (const type of types) {
+					switch (type.kind) {
+						case TypeKind.UnsignedInteger: {
+							bits = Math.max(bits, type.bits + 1)
+						} break
+
+						case TypeKind.SignedInteger: {
+							bits = Math.max(bits, type.bits)
+						} break
+
+						default:
+							throw new Error(`${HERE} ${printType(type)}`)
+					}
+				}
+
+				return { kind: TypeKind.SignedInteger, bits }
+			}
+
+			if (typeKinds.has(TypeKind.UnsignedInteger)) {
+				let bits = 0
+
+				for (const type of types) {
+					assert(type.kind == TypeKind.UnsignedInteger, `${HERE} ${printType(type)}`)
+					bits = Math.max(bits, type.bits)
+				}
+
+				return { kind: TypeKind.UnsignedInteger, bits }
+			}
+
+			throw new Error(HERE)
+		}
+
+		const assertTypesAreCompatible = (subject: Type, target: Type) => {
+			assert(isTypeCompatible(subject, target), `${printType(subject)} is not compatible with ${printType(target)}`)
+		}
+
+		const printType = (type: Type): string => {
+			switch (type.kind) {
+				case TypeKind.Null:
+					return `null`
+
+				case TypeKind.True:
+					return `true`
+
+				case TypeKind.False:
+					return `false`
+
+				case TypeKind.UnsignedInteger:
+					return type.bits ? `u${type.bits}` : `u`
+
+				case TypeKind.SignedInteger:
+					return type.bits ? `i${type.bits}` : `i`
+
+				case TypeKind.Float16:
+					return `f16`
+
+				case TypeKind.Float32:
+					return `f32`
+
+				case TypeKind.Float64:
+					return `f64`
+
+				case TypeKind.Float128:
+					return `f128`
+
+				case TypeKind.Union:
+					return type.members.map(
+						type => type.kind == TypeKind.Function ? `(${printType(type)})` : printType(type)
+					).join(` ? `)
+
+				case TypeKind.Object:
+					return `{ ${[ ...type.properties ].map(([ name, type ]) => `${name}: ${printType(type)}`).join(`, `)} }`
+
+				case TypeKind.Function: {
+					const printedReturnType = type.returnType.kind == TypeKind.Union ||
+						type.returnType.kind == TypeKind.Function ?
+							`(${printType(type.returnType)})` :
+							printType(type.returnType)
+
+					return `(${[ ...type.parameters ].map(type => printType(type)).join(`, `)}): ${printedReturnType}`
+				}
+
+				case TypeKind.Any:
+					return `any`
+
+				default:
+					throw new Error(`TODO handle ${TypeKind[type.kind]}`)
+			}
+		}
+
 		switch (expression.kind) {
 			case ExpressionKind.Function: {
 				assert(expression.parameter.kind == ExpressionKind.Identifier, `TODO handle object`)
@@ -77,8 +201,12 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				// TODO check if type of the expression is assignable to the given type
 
 				if (expression.type) {
+					const type = evaluateExpression(expression.type)
 
-				}
+					assertTypesAreCompatible(evaluateExpressionType(expression.initialValue), type)
+					locals.set(expression.binding.name, type)
+				} else
+					locals.set(expression.binding.name, evaluateExpressionType(expression.initialValue))
 
 				return { kind: TypeKind.Null }
 			}
@@ -109,8 +237,23 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				throw new Error(`no variable "${expression.name}" at ${fileName}:${expression.line}:${expression.column}`)
 			}
 
+			case ExpressionKind.UnsignedIntegerLiteral:
+				return { kind: TypeKind.UnsignedInteger, bits: expression.bits }
+
+			case ExpressionKind.Add: {
+				const resolvedType = resolveTypes(
+					evaluateExpressionType(expression.left),
+					evaluateExpressionType(expression.right)
+				)
+
+				if (resolvedType.kind == TypeKind.UnsignedInteger || resolvedType.kind == TypeKind.SignedInteger)
+					resolvedType.bits++
+
+				return resolvedType
+			}
+
 			default:
-				throw new Error(`TODO handle ${ExpressionKind[expression.kind]}`)
+				throw new Error(`TODO handle expression ${ExpressionKind[expression.kind]}`)
 		}
 	}
 
@@ -166,6 +309,116 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 
 				throw new Error(`${ExpressionKind[expression.kind]}`)
 			}
+		}
+	}
+
+	const isTypeCompatible = (subject: Type, target: Type): boolean => {
+		if (target.kind == TypeKind.Any)
+			return true
+
+		if (target.kind == TypeKind.Union)
+			return target.members.some(target => isTypeCompatible(subject, target))
+
+		switch (subject.kind) {
+			case TypeKind.Null:
+				return target.kind == TypeKind.Null
+
+			case TypeKind.True:
+				return target.kind == TypeKind.True
+
+			case TypeKind.False:
+				return target.kind == TypeKind.False
+
+			case TypeKind.UnsignedInteger: {
+				if (target.kind == TypeKind.UnsignedInteger)
+					return subject.bits <= target.bits
+
+				// the extra bit is needed because signed integers use 1 bit for the sign
+				if (target.kind == TypeKind.SignedInteger)
+					return subject.bits < target.bits
+
+				// IEEE half floating point numbers have 11 bits precision
+				if (target.kind == TypeKind.Float16)
+					return subject.bits <= 11
+
+				if (target.kind == TypeKind.Float32)
+					return subject.bits <= 24
+
+				if (target.kind == TypeKind.Float64)
+					return subject.bits <= 53
+
+				return target.kind == TypeKind.Float128 && subject.bits <= 113
+			}
+
+			case TypeKind.SignedInteger: {
+				if (target.kind == TypeKind.SignedInteger)
+					return subject.bits <= target.bits
+
+				// we can get away with an extra bit here because signed integers use 1 bit for the sign
+				if (target.kind == TypeKind.Float16)
+					return subject.bits <= 12
+
+				if (target.kind == TypeKind.Float32)
+					return subject.bits <= 25
+
+				if (target.kind == TypeKind.Float64)
+					return subject.bits <= 54
+
+				return target.kind == TypeKind.Float128 && subject.bits <= 114
+			}
+
+			case TypeKind.Float16: {
+				if (target.kind == TypeKind.Float16 || target.kind == TypeKind.Float32)
+					return true
+
+				return target.kind == TypeKind.Float64 || target.kind == TypeKind.Float128
+			}
+
+			case TypeKind.Float32: {
+				if (target.kind == TypeKind.Float32 || target.kind == TypeKind.Float64 || target.kind == TypeKind.Float128)
+					return true
+
+				return false
+			}
+
+			case TypeKind.Float64:
+				return target.kind == TypeKind.Float64 || target.kind == TypeKind.Float128
+
+			case TypeKind.Float128:
+				return target.kind == TypeKind.Float128
+
+			case TypeKind.Union:
+				return subject.members.every(subject => isTypeCompatible(subject, target))
+
+			case TypeKind.Object: {
+				if (target.kind != TypeKind.Object)
+					return false
+
+				return [ ...target.properties ].every(([ propertyName, target ]) => {
+					if (subject.properties.has(propertyName))
+						return isTypeCompatible(subject.properties.get(propertyName)!, target)
+
+					return false
+				})
+			}
+
+			case TypeKind.Function: {
+				if (target.kind != TypeKind.Function || subject.parameters.length > target.parameters.length)
+					return false
+
+				for (const [ parameterIndex, parameterType ] of subject.parameters.entries()) {
+					if (!isTypeCompatible(parameterType, target.parameters[parameterIndex]!))
+						return false
+				}
+
+				return isTypeCompatible(subject.returnType, target.returnType)
+			}
+
+			case TypeKind.Opaque:
+				return subject == target
+
+			default:
+				throw new Error(`TODO handle type ${TypeKind[subject.kind]}`)
 		}
 	}
 
