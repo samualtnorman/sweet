@@ -1,5 +1,4 @@
 import { Expression, ExpressionKind } from "./parse"
-import printExpression from "./printExpression"
 
 export type Type = Type.Opaque | Type.Null | Type.True | Type.False | Type.UnsignedInteger | Type.SignedInteger | Type.Float16 |
 	Type.Float32 | Type.Float64 | Type.Float128 | Type.Union | Type.Object | Type.Function | Type.Any
@@ -27,57 +26,102 @@ export enum TypeKind {
 	Float32, Float64, Float128, Union, Object, Function, Any
 }
 
-class TypeError extends Error {
-	static {
-		Object.defineProperty(this.prototype, `name`, { value: this.name })
-	}
-
-	constructor(
-		public readonly fileName: string,
-		public readonly expression: Expression,
-		message: string
-	) {
-		super(`${message} at ${fileName}:${expression.line}:${expression.column}`)
-	}
-}
-
 export const typeCheck = (expressions: Expression[], fileName: string) => {
-	const locals = new Map<string, Type>()
+	//	I'm starting to think that .truthy should probably be .notZero on the SignedInteger type itself
+	//	my thinking is that in the following example:
+	//		declare let foo: true ? false
+	//		if foo
+	//			// the type of foo should be changed to just true
+	//		else
+	//			// and it should be changed to just false here
+	//		// and then back to true ? false obviously
+	const locals = new Map<string, { type: Type, truthy: boolean | undefined }>()
 
-	const evaluateExpressionType = (expression: Expression): Type => {
-		// stupid typescript requires an explicit type annotation here for some reason
-		const assert: (value: any, message: string) => asserts value = (value, message) => {
-			if (!value)
-				throw new TypeError(fileName, expression, message)
+	const getExpressionType = (expression: Expression): Type => {
+		const returnedTypes: Type[] = []
+
+		const evaluateExpression = (expression: Expression): Type => {
+			switch (expression.kind) {
+				case ExpressionKind.SignedIntegerType:
+					return { kind: TypeKind.SignedInteger, bits: expression.bits || 32 }
+
+				case ExpressionKind.UnsignedIntegerType:
+					return { kind: TypeKind.UnsignedInteger, bits: expression.bits || 32 }
+
+				case ExpressionKind.Float16Type:
+					return { kind: TypeKind.Float16 }
+
+				case ExpressionKind.Float32Type:
+					return { kind: TypeKind.Float32 }
+
+				case ExpressionKind.Float64Type:
+					return { kind: TypeKind.Float64 }
+
+				case ExpressionKind.Float128Type:
+					return { kind: TypeKind.Float128 }
+
+				case ExpressionKind.Null:
+					return { kind: TypeKind.Null }
+
+				case ExpressionKind.Union: {
+					const leftEvaluated = evaluateExpression(expression.left)
+					const rightEvaluated = evaluateExpression(expression.right)
+
+					if (leftEvaluated.kind == TypeKind.Any)
+						return leftEvaluated
+
+					if (rightEvaluated.kind == TypeKind.Any)
+						return rightEvaluated
+
+					return {
+						kind: TypeKind.Union,
+						members: leftEvaluated.kind == TypeKind.Union ?
+							(rightEvaluated.kind == TypeKind.Union ?
+								[ ...leftEvaluated.members, ...rightEvaluated.members ] :
+								[ ...leftEvaluated.members, rightEvaluated ]
+							) :
+							(rightEvaluated.kind == TypeKind.Union ?
+								[ leftEvaluated, ...rightEvaluated.members ] :
+								[ leftEvaluated, rightEvaluated ]
+							)
+					}
+				}
+
+				default:
+					error(`TODO handle ExpressionKind.${ExpressionKind[expression.kind]}`, expression)
+			}
 		}
 
 		const resolveTypes = (...types: Type[]): Type => {
+			if (!types.length)
+				return { kind: TypeKind.Null }
+
 			const typeKinds = new Set(types.map(({ kind }) => kind))
 
 			if (typeKinds.has(TypeKind.Float128)) {
 				for (const type of types)
-					assertTypesAreCompatible(type, { kind: TypeKind.Float128 })
+					assertTypeIsCompatible(type, { kind: TypeKind.Float128 }, expression)
 
 				return { kind: TypeKind.Float128 }
 			}
 
 			if (typeKinds.has(TypeKind.Float64)) {
 				for (const type of types)
-					assertTypesAreCompatible(type, { kind: TypeKind.Float64 })
+					assertTypeIsCompatible(type, { kind: TypeKind.Float64 }, expression)
 
 				return { kind: TypeKind.Float64 }
 			}
 
 			if (typeKinds.has(TypeKind.Float32)) {
 				for (const type of types)
-					assertTypesAreCompatible(type, { kind: TypeKind.Float32 })
+					assertTypeIsCompatible(type, { kind: TypeKind.Float32 }, expression)
 
 				return { kind: TypeKind.Float32 }
 			}
 
 			if (typeKinds.has(TypeKind.Float16)) {
 				for (const type of types)
-					assertTypesAreCompatible(type, { kind: TypeKind.Float16 })
+					assertTypeIsCompatible(type, { kind: TypeKind.Float16 }, expression)
 
 				return { kind: TypeKind.Float16 }
 			}
@@ -96,7 +140,7 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 						} break
 
 						default:
-							throw new Error(`${HERE} ${printType(type)}`)
+							error(`TODO handle TypeKind.${TypeKind[type.kind]}`, expression)
 					}
 				}
 
@@ -107,210 +151,138 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				let bits = 0
 
 				for (const type of types) {
-					assert(type.kind == TypeKind.UnsignedInteger, `${HERE} ${printType(type)}`)
+					assert(type.kind == TypeKind.UnsignedInteger, `${HERE} ${printType(type)}`, expression)
 					bits = Math.max(bits, type.bits)
 				}
 
 				return { kind: TypeKind.UnsignedInteger, bits }
 			}
 
-			throw new Error(HERE)
-		}
-
-		const assertTypesAreCompatible = (subject: Type, target: Type) => {
-			assert(isTypeCompatible(subject, target), `${printType(subject)} is not compatible with ${printType(target)}`)
-		}
-
-		const printType = (type: Type): string => {
-			switch (type.kind) {
-				case TypeKind.Null:
-					return `null`
-
-				case TypeKind.True:
-					return `true`
-
-				case TypeKind.False:
-					return `false`
-
-				case TypeKind.UnsignedInteger:
-					return type.bits ? `u${type.bits}` : `u`
-
-				case TypeKind.SignedInteger:
-					return type.bits ? `i${type.bits}` : `i`
-
-				case TypeKind.Float16:
-					return `f16`
-
-				case TypeKind.Float32:
-					return `f32`
-
-				case TypeKind.Float64:
-					return `f64`
-
-				case TypeKind.Float128:
-					return `f128`
-
-				case TypeKind.Union:
-					return type.members.map(
-						type => type.kind == TypeKind.Function ? `(${printType(type)})` : printType(type)
-					).join(` ? `)
-
-				case TypeKind.Object:
-					return `{ ${[ ...type.properties ].map(([ name, type ]) => `${name}: ${printType(type)}`).join(`, `)} }`
-
-				case TypeKind.Function: {
-					const printedReturnType = type.returnType.kind == TypeKind.Union ||
-						type.returnType.kind == TypeKind.Function ?
-							`(${printType(type.returnType)})` :
-							printType(type.returnType)
-
-					return `(${[ ...type.parameters ].map(type => printType(type)).join(`, `)}): ${printedReturnType}`
-				}
-
-				case TypeKind.Any:
-					return `any`
-
-				default:
-					throw new Error(`TODO handle ${TypeKind[type.kind]}`)
-			}
+			error(`TODO handle TypeKind.${TypeKind[types[0]!.kind]}`, expression)
 		}
 
 		switch (expression.kind) {
 			case ExpressionKind.Function: {
-				assert(expression.parameter.kind == ExpressionKind.Identifier, `TODO handle object`)
-				assert(expression.parameterType, `TODO infer type`)
-				locals.set(expression.parameter.name, evaluateExpression(expression.parameterType))
+				assert(expression.parameter.kind == ExpressionKind.Identifier, `TODO handle object`, expression)
+				assert(expression.parameterType, `TODO infer type`, expression)
+				locals.set(expression.parameter.name, { type: evaluateExpression(expression.parameterType), truthy: undefined })
+
+				for (const childExpression of expression.body)
+					assertTypeIsCompatible(getExpressionType(childExpression), { kind: TypeKind.Null }, childExpression)
 
 				if (expression.returnType) {
-					// TODO make sure types of expressions in returns are assignable to the return type
-					evaluateExpression(expression.returnType)
-				}
+					const returnType = evaluateExpression(expression.returnType)
 
-				for (const childExpression of expression.body) {
-					// TODO evaluated expression type must be null
-					evaluateExpressionType(childExpression)
-				}
+					for (const returnedType of returnedTypes)
+						assertTypeIsCompatible(returnedType, returnType, expression)
+				} else
+					resolveTypes(...returnedTypes)
 
 				return { kind: TypeKind.Null }
 			}
 
 			case ExpressionKind.Let: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`)
-				assert(expression.initialValue, `TODO no initial value`)
-				// TODO variable not having given or inferred type
-				// TODO check if type of the expression is assignable to the given type
+				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`, expression)
+				assert(expression.initialValue, `TODO no initial value`, expression)
 
 				if (expression.type) {
 					const type = evaluateExpression(expression.type)
 
-					assertTypesAreCompatible(evaluateExpressionType(expression.initialValue), type)
-					locals.set(expression.binding.name, type)
+					assertTypeIsCompatible(getExpressionType(expression.initialValue), type, expression)
+					locals.set(expression.binding.name, { type, truthy: undefined })
 				} else
-					locals.set(expression.binding.name, evaluateExpressionType(expression.initialValue))
+					locals.set(expression.binding.name, { type: getExpressionType(expression.initialValue), truthy: undefined })
 
 				return { kind: TypeKind.Null }
 			}
 
 			case ExpressionKind.While: {
-				evaluateExpressionType(expression.condition)
+				if (expression.condition.kind == ExpressionKind.Identifier && locals.has(expression.condition.name))
+					locals.get(expression.condition.name)!.truthy = true
 
-				for (const childExpression of expression.body) {
-					// TODO evaluated expression type must be null
-					evaluateExpressionType(childExpression)
-				}
+				getExpressionType(expression.condition)
+
+				for (const childExpression of expression.body)
+					assertTypeIsCompatible(getExpressionType(childExpression), { kind: TypeKind.Null }, childExpression)
 
 				return { kind: TypeKind.Null }
 			}
 
 			case ExpressionKind.NormalAssign: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`)
-				// TODO check if the type of the value is assignable to the binding
-				evaluateExpressionType(expression.value)
+				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`, expression)
+
+				if (!locals.has(expression.binding.name))
+					error(`no variable "${expression.binding.name}"`, expression)
+
+				assertTypeIsCompatible(getExpressionType(expression.value), locals.get(expression.binding.name)!.type, expression)
 
 				return { kind: TypeKind.Null }
 			}
 
 			case ExpressionKind.Identifier: {
 				if (locals.has(expression.name))
-					return locals.get(expression.name)!
+					return locals.get(expression.name)!.type
 
-				throw new Error(`no variable "${expression.name}" at ${fileName}:${expression.line}:${expression.column}`)
+				error(`no variable "${expression.name}"`, expression)
 			}
 
 			case ExpressionKind.UnsignedIntegerLiteral:
 				return { kind: TypeKind.UnsignedInteger, bits: expression.bits }
 
 			case ExpressionKind.Add: {
-				const resolvedType = resolveTypes(
-					evaluateExpressionType(expression.left),
-					evaluateExpressionType(expression.right)
+				const type =
+					resolveTypes(getExpressionType(expression.left), getExpressionType(expression.right))
+
+				if (type.kind == TypeKind.UnsignedInteger || type.kind == TypeKind.SignedInteger)
+					return { kind: type.kind, bits: type.bits + 1 }
+
+				return type
+			}
+
+			case ExpressionKind.Decrement: {
+				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`, expression)
+
+				if (!locals.has(expression.binding.name))
+					error(`no variable "${expression.binding.name}"`, expression)
+
+				const { type, truthy } = locals.get(expression.binding.name)!
+
+				if (!truthy && (type.kind == TypeKind.UnsignedInteger || type.kind == TypeKind.SignedInteger))
+					assertTypeIsCompatible({ kind: TypeKind.SignedInteger, bits: type.bits + 1 }, type, expression)
+
+				return { kind: TypeKind.Null }
+			}
+
+			case ExpressionKind.Return: {
+				returnedTypes.push(
+					expression.expression ? getExpressionType(expression.expression) : { kind: TypeKind.Null }
 				)
 
-				if (resolvedType.kind == TypeKind.UnsignedInteger || resolvedType.kind == TypeKind.SignedInteger)
-					resolvedType.bits++
+				return { kind: TypeKind.Null }
+			}
 
-				return resolvedType
+			case ExpressionKind.WrappingAdd:
+				return resolveTypes(getExpressionType(expression.left), getExpressionType(expression.right))
+
+			case ExpressionKind.Minus: {
+				const type = resolveTypes(getExpressionType(expression.left), getExpressionType(expression.right))
+
+				if (type.kind == TypeKind.UnsignedInteger || type.kind == TypeKind.SignedInteger)
+					return { kind: TypeKind.SignedInteger, bits: type.bits + 1 }
+
+				return type
 			}
 
 			default:
-				throw new Error(`TODO handle expression ${ExpressionKind[expression.kind]}`)
+				error(`TODO handle ExpressionKind.${ExpressionKind[expression.kind]}`, expression)
 		}
 	}
 
-	const evaluateExpression = (expression: Expression): Type => {
-		switch (expression.kind) {
-			case ExpressionKind.SignedIntegerType:
-				return { kind: TypeKind.SignedInteger, bits: expression.bits }
-
-			case ExpressionKind.UnsignedIntegerType:
-				return { kind: TypeKind.UnsignedInteger, bits: expression.bits }
-
-			case ExpressionKind.Float16Type:
-				return { kind: TypeKind.Float16 }
-
-			case ExpressionKind.Float32Type:
-				return { kind: TypeKind.Float32 }
-
-			case ExpressionKind.Float64Type:
-				return { kind: TypeKind.Float64 }
-
-			case ExpressionKind.Float128Type:
-				return { kind: TypeKind.Float128 }
-
-			case ExpressionKind.Null:
-				return { kind: TypeKind.Null }
-
-			case ExpressionKind.Union: {
-				const leftEvaluated = evaluateExpression(expression.left)
-				const rightEvaluated = evaluateExpression(expression.right)
-
-				if (leftEvaluated.kind == TypeKind.Any)
-					return leftEvaluated
-
-				if (rightEvaluated.kind == TypeKind.Any)
-					return rightEvaluated
-
-				return {
-					kind: TypeKind.Union,
-					members: leftEvaluated.kind == TypeKind.Union ?
-						(rightEvaluated.kind == TypeKind.Union ?
-							[ ...leftEvaluated.members, ...rightEvaluated.members ] :
-							[ ...leftEvaluated.members, rightEvaluated ]
-						) :
-						(rightEvaluated.kind == TypeKind.Union ?
-							[ leftEvaluated, ...rightEvaluated.members ] :
-							[ leftEvaluated, rightEvaluated ]
-						)
-				}
-			}
-
-			default: {
-				console.log(printExpression(expression))
-
-				throw new Error(`${ExpressionKind[expression.kind]}`)
-			}
-		}
-	}
+	const assertTypeIsCompatible = (subject: Type, target: Type, expression: Expression) => assert(
+		isTypeCompatible(subject, target),
+		`${printType(subject)} is not compatible with ${printType(target)}`,
+		expression
+	)
 
 	const isTypeCompatible = (subject: Type, target: Type): boolean => {
 		if (target.kind == TypeKind.Any)
@@ -418,14 +390,77 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				return subject == target
 
 			default:
-				throw new Error(`TODO handle type ${TypeKind[subject.kind]}`)
+				throw new Error(`TODO handle TypeKind.${TypeKind[subject.kind]}`)
 		}
 	}
 
-	for (const expression of expressions) {
-		// TODO evaluated expression type must be null
-		evaluateExpressionType(expression)
+	const printType = (type: Type): string => {
+		switch (type.kind) {
+			case TypeKind.Null:
+				return `null`
+
+			case TypeKind.True:
+				return `true`
+
+			case TypeKind.False:
+				return `false`
+
+			case TypeKind.UnsignedInteger:
+				return type.bits ? `u${type.bits}` : `u`
+
+			case TypeKind.SignedInteger:
+				return type.bits ? `i${type.bits}` : `i`
+
+			case TypeKind.Float16:
+				return `f16`
+
+			case TypeKind.Float32:
+				return `f32`
+
+			case TypeKind.Float64:
+				return `f64`
+
+			case TypeKind.Float128:
+				return `f128`
+
+			case TypeKind.Union:
+				return type.members.map(
+					type => type.kind == TypeKind.Function ? `(${printType(type)})` : printType(type)
+				).join(` ? `)
+
+			case TypeKind.Object:
+				return `{ ${[ ...type.properties ].map(([ name, type ]) => `${name}: ${printType(type)}`).join(`, `)} }`
+
+			case TypeKind.Function: {
+				const printedReturnType = type.returnType.kind == TypeKind.Union ||
+					type.returnType.kind == TypeKind.Function ?
+						`(${printType(type.returnType)})` :
+						printType(type.returnType)
+
+				return `(${[ ...type.parameters ].map(type => printType(type)).join(`, `)}): ${printedReturnType}`
+			}
+
+			case TypeKind.Any:
+				return `any`
+
+			default:
+				throw new Error(`TODO handle TypeKind.${TypeKind[type.kind]}`)
+		}
 	}
+
+	// stupid typescript requires an explicit type annotation here for some reason
+	const assert: (value: any, message: string, expression: Expression) => asserts value = (value, message, expression) => {
+		if (!value)
+			error(message, expression)
+	}
+
+	// and again here
+	const error: (message: string, expression: Expression) => never = (message, expression) => {
+		throw new Error(`${message} at ${fileName}:${expression.line}:${expression.column}`)
+	}
+
+	for (const expression of expressions)
+		assertTypeIsCompatible(getExpressionType(expression), { kind: TypeKind.Null }, expression)
 }
 
 export default typeCheck

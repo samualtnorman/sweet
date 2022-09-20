@@ -107,8 +107,14 @@ export namespace Expression {
 	export type SignedIntegerLiteral = ExpressionBase &
 		{ kind: ExpressionKind.SignedIntegerLiteral, value: bigint, bits: number }
 
+	export type SignedIntegerType = ExpressionBase &
+		{ kind: ExpressionKind.SignedIntegerType, bits: number | undefined }
+
 	export type UnsignedIntegerLiteral = ExpressionBase &
 		{ kind: ExpressionKind.UnsignedIntegerLiteral, value: bigint, bits: number }
+
+	export type UnsignedIntegerType = ExpressionBase &
+		{ kind: ExpressionKind.UnsignedIntegerType, bits: number | undefined }
 
 	export type Array = ExpressionBase & { kind: ExpressionKind.Array, expressions: Expression[] }
 	export type BitwiseNot = ExpressionBase & { kind: ExpressionKind.BitwiseNot, expression: Expression }
@@ -124,9 +130,7 @@ export namespace Expression {
 	export type Loop = ExpressionBase & { kind: ExpressionKind.Loop, body: Expression[] }
 	export type MinusPrefix = ExpressionBase & { kind: ExpressionKind.MinusPrefix, expression: Expression }
 	export type Return = ExpressionBase & { kind: ExpressionKind.Return, expression: Expression | undefined }
-	export type SignedIntegerType = ExpressionBase & { kind: ExpressionKind.SignedIntegerType, bits: number }
 	export type String = ExpressionBase & { kind: ExpressionKind.String, value: string }
-	export type UnsignedIntegerType = ExpressionBase & { kind: ExpressionKind.UnsignedIntegerType, bits: number }
 	export type Void = ExpressionBase & { kind: ExpressionKind.Void, expression: Expression }
 	export type While = ExpressionBase & { kind: ExpressionKind.While, condition: Expression, body: Expression[] }
 }
@@ -607,15 +611,21 @@ export const parseExpressions = function* (
 			case TokenKind.UnsignedIntegerType: {
 				state.cursor++
 
-				expression =
-					{ kind: ExpressionKind.UnsignedIntegerType, bits: Number(firstToken.data), ...expressionbase }
+				expression = {
+					kind: ExpressionKind.UnsignedIntegerType,
+					bits: firstToken.data ? Number(firstToken.data) : undefined,
+					...expressionbase
+				}
 			} break
 
 			case TokenKind.SignedIntegerType: {
 				state.cursor++
 
-				expression =
-					{ kind: ExpressionKind.SignedIntegerType, bits: Number(firstToken.data), ...expressionbase }
+				expression = {
+					kind: ExpressionKind.SignedIntegerType,
+					bits: firstToken.data ? Number(firstToken.data) : undefined,
+					...expressionbase
+				}
 			} break
 
 			case TokenKind.Enum: {
@@ -747,8 +757,6 @@ export const parseExpressions = function* (
 				return expression
 
 			const kind = BinaryOperatorTokensToExpressionKinds[tokens[state.cursor]!.kind]
-
-			console.log(kind)
 
 			if (!kind) {
 				const argument = maybeParseExpression(noParseAssign)

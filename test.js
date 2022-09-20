@@ -29,4 +29,6 @@ const sourceCode = await readFile(fileName, { encoding: `utf-8` })
 const tokens = [ ...tokenise(sourceCode) ]
 const expressions = [ ...parse(tokens, fileName) ]
 
+console.log(printExpressions(expressions, `    `))
+
 typeCheck(expressions, fileName)

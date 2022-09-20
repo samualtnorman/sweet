@@ -246,8 +246,10 @@ export const NonDataTokenDefinitions: { regex: RegExp, tokenKind: Exclude<TokenK
 ]
 
 export const DataTokenDefinitions: { regex: RegExp, tokenKind: DataTokenKind }[] = [
-	{ regex: /^u([1-9]\d*)?\b/, tokenKind: TokenKind.UnsignedIntegerType },
-	{ regex: /^i([1-9]\d*)?\b/, tokenKind: TokenKind.SignedIntegerType },
+	// eslint-disable-next-line regexp/no-empty-alternative
+	{ regex: /^u([1-9]\d*|)\b/, tokenKind: TokenKind.UnsignedIntegerType },
+	// eslint-disable-next-line regexp/no-empty-alternative
+	{ regex: /^i([1-9]\d*|)\b/, tokenKind: TokenKind.SignedIntegerType },
 	{ regex: /^0b[01](?:_?[01])*/, tokenKind: TokenKind.BinaryNumber },
 	{ regex: /^0x[\da-fA-F](?:_?[\da-fA-F])*/, tokenKind: TokenKind.HexNumber },
 	{ regex: /^0o[0-7](?:_?[0-7])*/, tokenKind: TokenKind.OctalNumber },
@@ -274,7 +276,7 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 
 	while (index < code.length) {
 		if ((match = /^((?:(?:\/\/.*)?\r?\n)+)(\t*)/.exec(code.slice(index)))) {
-			yield createToken(TokenKind.Newline, match[2]!)
+			yield createToken(TokenKind.Newline, match[2])
 			line += match[1]!.split(``).filter(character => character == `\n`).length
 			column = match[2]!.length + 1
 			index += match[0]!.length
@@ -294,13 +296,13 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 
 				for (const { regex, tokenKind } of DataTokenDefinitions) {
 					if ((match = regex.exec(code.slice(index)))) {
-						yield createToken(tokenKind, match[1]!)
+						yield createToken(tokenKind, match[1])
 
 						break checkSpace
 					}
 				}
 
-				yield createToken(TokenKind.Error, code[index]!)
+				yield createToken(TokenKind.Error, code[index])
 				column++
 				index++
 

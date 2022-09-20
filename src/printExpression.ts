@@ -2,7 +2,7 @@ import { isRecord } from "@samual/lib"
 import { Expression, ExpressionKind } from "./parse"
 
 export const printExpression = (node: Record<string, unknown>, indentString = `\t`, indentLevel = 0): string => {
-	const { kind, ...nodeProperties } = node
+	const { kind, index, line, column, ...nodeProperties } = node
 	let o = ``
 
 	if (typeof kind == `number`) {
