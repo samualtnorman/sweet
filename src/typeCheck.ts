@@ -9,8 +9,8 @@ export namespace Type {
 	export type Null = { kind: TypeKind.Null }
 	export type True = { kind: TypeKind.True }
 	export type False = { kind: TypeKind.False }
-	export type UnsignedInteger = { kind: TypeKind.UnsignedInteger, bits: number }
-	export type SignedInteger = { kind: TypeKind.SignedInteger, bits: number }
+	export type UnsignedInteger = { kind: TypeKind.UnsignedInteger, bits: number, isZero: false | undefined }
+	export type SignedInteger = { kind: TypeKind.SignedInteger, bits: number, isZero: false | undefined }
 	export type Float16 = { kind: TypeKind.Float16 }
 	export type Float32 = { kind: TypeKind.Float32 }
 	export type Float64 = { kind: TypeKind.Float64 }
@@ -27,15 +27,7 @@ export enum TypeKind {
 }
 
 export const typeCheck = (expressions: Expression[], fileName: string) => {
-	//	I'm starting to think that .truthy should probably be .notZero on the SignedInteger type itself
-	//	my thinking is that in the following example:
-	//		declare let foo: true ? false
-	//		if foo
-	//			// the type of foo should be changed to just true
-	//		else
-	//			// and it should be changed to just false here
-	//		// and then back to true ? false obviously
-	const locals = new Map<string, { type: Type, truthy: boolean | undefined }>()
+	const locals = new Map<string, Type>()
 
 	const getExpressionType = (expression: Expression): Type => {
 		const returnedTypes: Type[] = []
@@ -43,10 +35,10 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 		const evaluateExpression = (expression: Expression): Type => {
 			switch (expression.kind) {
 				case ExpressionKind.SignedIntegerType:
-					return { kind: TypeKind.SignedInteger, bits: expression.bits || 32 }
+					return { kind: TypeKind.SignedInteger, bits: expression.bits || 32, isZero: undefined }
 
 				case ExpressionKind.UnsignedIntegerType:
-					return { kind: TypeKind.UnsignedInteger, bits: expression.bits || 32 }
+					return { kind: TypeKind.UnsignedInteger, bits: expression.bits || 32, isZero: undefined }
 
 				case ExpressionKind.Float16Type:
 					return { kind: TypeKind.Float16 }
@@ -144,7 +136,7 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 					}
 				}
 
-				return { kind: TypeKind.SignedInteger, bits }
+				return { kind: TypeKind.SignedInteger, bits, isZero: undefined }
 			}
 
 			if (typeKinds.has(TypeKind.UnsignedInteger)) {
@@ -155,7 +147,7 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 					bits = Math.max(bits, type.bits)
 				}
 
-				return { kind: TypeKind.UnsignedInteger, bits }
+				return { kind: TypeKind.UnsignedInteger, bits, isZero: undefined }
 			}
 
 			error(`TODO handle TypeKind.${TypeKind[types[0]!.kind]}`, expression)
@@ -165,7 +157,7 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			case ExpressionKind.Function: {
 				assert(expression.parameter.kind == ExpressionKind.Identifier, `TODO handle object`, expression)
 				assert(expression.parameterType, `TODO infer type`, expression)
-				locals.set(expression.parameter.name, { type: evaluateExpression(expression.parameterType), truthy: undefined })
+				locals.set(expression.parameter.name, evaluateExpression(expression.parameterType))
 
 				for (const childExpression of expression.body)
 					assertTypeIsCompatible(getExpressionType(childExpression), { kind: TypeKind.Null }, childExpression)
@@ -189,16 +181,21 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 					const type = evaluateExpression(expression.type)
 
 					assertTypeIsCompatible(getExpressionType(expression.initialValue), type, expression)
-					locals.set(expression.binding.name, { type, truthy: undefined })
+					locals.set(expression.binding.name, type)
 				} else
-					locals.set(expression.binding.name, { type: getExpressionType(expression.initialValue), truthy: undefined })
+					locals.set(expression.binding.name, getExpressionType(expression.initialValue))
 
 				return { kind: TypeKind.Null }
 			}
 
 			case ExpressionKind.While: {
-				if (expression.condition.kind == ExpressionKind.Identifier && locals.has(expression.condition.name))
-					locals.get(expression.condition.name)!.truthy = true
+				// TODO I need a function to do this to share code
+				if (expression.condition.kind == ExpressionKind.Identifier && locals.has(expression.condition.name)) {
+					const type = locals.get(expression.condition.name)!
+
+					if (`isZero` in type)
+						type.isZero = false
+				}
 
 				getExpressionType(expression.condition)
 
@@ -214,27 +211,26 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				if (!locals.has(expression.binding.name))
 					error(`no variable "${expression.binding.name}"`, expression)
 
-				assertTypeIsCompatible(getExpressionType(expression.value), locals.get(expression.binding.name)!.type, expression)
+				assertTypeIsCompatible(getExpressionType(expression.value), locals.get(expression.binding.name)!, expression)
 
 				return { kind: TypeKind.Null }
 			}
 
 			case ExpressionKind.Identifier: {
 				if (locals.has(expression.name))
-					return locals.get(expression.name)!.type
+					return locals.get(expression.name)!
 
 				error(`no variable "${expression.name}"`, expression)
 			}
 
 			case ExpressionKind.UnsignedIntegerLiteral:
-				return { kind: TypeKind.UnsignedInteger, bits: expression.bits }
+				return { kind: TypeKind.UnsignedInteger, bits: expression.bits, isZero: undefined }
 
 			case ExpressionKind.Add: {
-				const type =
-					resolveTypes(getExpressionType(expression.left), getExpressionType(expression.right))
+				const type = resolveTypes(getExpressionType(expression.left), getExpressionType(expression.right))
 
 				if (type.kind == TypeKind.UnsignedInteger || type.kind == TypeKind.SignedInteger)
-					return { kind: type.kind, bits: type.bits + 1 }
+					return { ...type, bits: type.bits + 1 }
 
 				return type
 			}
@@ -245,10 +241,10 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				if (!locals.has(expression.binding.name))
 					error(`no variable "${expression.binding.name}"`, expression)
 
-				const { type, truthy } = locals.get(expression.binding.name)!
+				const type = locals.get(expression.binding.name)!
 
-				if (!truthy && (type.kind == TypeKind.UnsignedInteger || type.kind == TypeKind.SignedInteger))
-					assertTypeIsCompatible({ kind: TypeKind.SignedInteger, bits: type.bits + 1 }, type, expression)
+				if ((type.kind == TypeKind.UnsignedInteger || type.kind == TypeKind.SignedInteger) && type.isZero != false)
+					assertTypeIsCompatible({ kind: TypeKind.SignedInteger, bits: type.bits + 1, isZero: type.isZero }, type, expression)
 
 				return { kind: TypeKind.Null }
 			}
@@ -268,9 +264,52 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				const type = resolveTypes(getExpressionType(expression.left), getExpressionType(expression.right))
 
 				if (type.kind == TypeKind.UnsignedInteger || type.kind == TypeKind.SignedInteger)
-					return { kind: TypeKind.SignedInteger, bits: type.bits + 1 }
+					return { kind: TypeKind.SignedInteger, bits: type.bits + 1, isZero: undefined }
 
 				return type
+			}
+
+			case ExpressionKind.If: {
+				assert(!expression.falseyBranch, `TODO else branch`, expression)
+
+				// TODO I need a function to do this to share code
+				if (
+					expression.condition.kind == ExpressionKind.BiggerThan &&
+					expression.condition.left.kind == ExpressionKind.Identifier &&
+					locals.has(expression.condition.left.name)
+				) {
+					const leftType = locals.get(expression.condition.left.name)!
+					const rightType = evaluateExpression(expression.condition.right)
+
+					if (leftType.kind == TypeKind.UnsignedInteger && rightType.kind == TypeKind.UnsignedInteger)
+						leftType.bits = rightType.bits
+				}
+
+				const truthyBranchType = getExpressionType(expression.truthyBranch)
+
+				if (truthyBranchType.kind == TypeKind.Any)
+					return truthyBranchType
+
+				// TODO I need a function to resolve types and widen if needed
+
+				return {
+					kind: TypeKind.Union,
+					members: truthyBranchType.kind == TypeKind.Union ?
+						[ ...truthyBranchType.members, { kind: TypeKind.Null } ] :
+						[ truthyBranchType, { kind: TypeKind.Null } ]
+				}
+			}
+
+			case ExpressionKind.Do:
+			case ExpressionKind.Loop: {
+				for (const childExpression of expression.body)
+					assertTypeIsCompatible(getExpressionType(childExpression), { kind: TypeKind.Null }, childExpression)
+
+				return { kind: TypeKind.Null }
+			}
+
+			case ExpressionKind.GlobalError: {
+				return { kind: TypeKind.Opaque }
 			}
 
 			default:

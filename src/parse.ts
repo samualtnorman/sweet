@@ -8,11 +8,12 @@ const DEBUG = false
 
 export type Expression = Expression.BinaryOperation | Expression.Assignment | Expression.Rement |
 	Expression.KeywordPrimitive | Expression.Array | Expression.BitwiseNot | Expression.Call |
-	Expression.DeclaredImport | Expression.Destructure | Expression.Do | Expression.Enum | Expression.Float16Literal |
-	Expression.Float32Literal | Expression.Float64Literal | Expression.Float128Literal | Expression.Function |
-	Expression.FunctionType | Expression.GetMember | Expression.Identifier | Expression.If | Expression.Import |
-	Expression.Let | Expression.LogicalNot | Expression.Loop | Expression.MinusPrefix | Expression.Object |
-	Expression.Return | Expression.SignedIntegerLiteral | Expression.SignedIntegerType | Expression.String |
+	Expression.DeclaredImport | Expression.Destructure | Expression.Do | Expression.Enum | Expression.ErrorEnum |
+	Expression.Float16Literal | Expression.Float32Literal | Expression.Float64Literal | Expression.Float128Literal |
+	Expression.Function | Expression.FunctionType | Expression.GetMember | Expression.GlobalError |
+	Expression.Identifier | Expression.If | Expression.Import | Expression.Let | Expression.LogicalNot |
+	Expression.Loop | Expression.MinusPrefix | Expression.Object | Expression.Return |
+	Expression.SignedIntegerLiteral | Expression.SignedIntegerType | Expression.String |
 	Expression.UnsignedIntegerLiteral | Expression.UnsignedIntegerType | Expression.Void | Expression.While
 
 export type ImportDestructureMember = { name: string, as: string | ImportDestructureMember[] }
@@ -68,6 +69,9 @@ export namespace Expression {
 
 	export type Enum = ExpressionBase &
 		{ kind: ExpressionKind.Enum, name: string, members: { name: string, type: Expression | undefined }[] }
+
+	export type ErrorEnum = ExpressionBase &
+		{ kind: ExpressionKind.ErrorEnum, name: string, members: { name: string, type: Expression | undefined }[] }
 
 	export type Function = ExpressionBase & {
 		kind: ExpressionKind.Function
@@ -125,6 +129,7 @@ export namespace Expression {
 	export type Float64Literal = ExpressionBase & { kind: ExpressionKind.Float64Literal, value: number }
 	export type Float128Literal = ExpressionBase & { kind: ExpressionKind.Float128Literal, value: number }
 	export type GetMember = ExpressionBase & { kind: ExpressionKind.GetMember, expression: Expression, name: string }
+	export type GlobalError = ExpressionBase & { kind: ExpressionKind.GlobalError, name: string }
 	export type Identifier = ExpressionBase & { kind: ExpressionKind.Identifier, name: string }
 	export type LogicalNot = ExpressionBase & { kind: ExpressionKind.LogicalNot, expression: Expression }
 	export type Loop = ExpressionBase & { kind: ExpressionKind.Loop, body: Expression[] }
@@ -138,14 +143,14 @@ export namespace Expression {
 export enum ExpressionKind {
 	Add = 1, Any, Array, As, BiggerThan, BiggerThanEquals, BitwiseAnd, BitwiseAndAssign, BitwiseNot, BitwiseOr,
 	BitwiseOrAssign, Boolean, Call, Concatenate, ConcatenateAssign, DeclaredImport, Decrement, Destructure, Divide, Do,
-	Enum, Equals, False, Float16Literal, Float16Type, Float32Literal, Float32Type, Float64Literal, Float64Type,
-	Float128Literal, Float128Type, Function, FunctionType, GetMember, Identifier, If, Import, Increment, Is, Let,
-	LogicalAnd, LogicalAndAssign, LogicalNot, LogicalOr, LogicalOrAssign, Loop, Minus, MinusPrefix, Modulo,
-	NormalAssign, NotEquals, Null, NullishCoalesce, NullishCoalesceAssign, Object, ObjectType, Power, Range, Return,
-	ShiftLeft, ShiftLeftAssign, ShiftRight, ShiftRightAssign, SignedIntegerLiteral, SignedIntegerType, SmallerThan,
-	SmallerThanEquals, String, Times, To, True, Union, UnsignedIntegerLiteral, UnsignedIntegerType, Void, While,
-	WrappingAdd, WrappingDecrement, WrappingDivide, WrappingIncrement, WrappingMinus, WrappingPower, WrappingShiftLeft,
-	WrappingShiftLeftAssign, WrappingTimes, Xor, XorAssign
+	Enum, ErrorEnum, Equals, False, Float16Literal, Float16Type, Float32Literal, Float32Type, Float64Literal,
+	Float64Type, Float128Literal, Float128Type, Function, FunctionType, GetMember, GlobalError, Identifier, If, Import,
+	Increment, Is, Let, LogicalAnd, LogicalAndAssign, LogicalNot, LogicalOr, LogicalOrAssign, Loop, Minus, MinusPrefix,
+	Modulo, NormalAssign, NotEquals, Null, NullishCoalesce, NullishCoalesceAssign, Object, ObjectType, Power, Range,
+	Return, ShiftLeft, ShiftLeftAssign, ShiftRight, ShiftRightAssign, SignedIntegerLiteral, SignedIntegerType,
+	SmallerThan, SmallerThanEquals, String, Times, To, True, Union, UnsignedIntegerLiteral, UnsignedIntegerType, Void,
+	While, WrappingAdd, WrappingDecrement, WrappingDivide, WrappingIncrement, WrappingMinus, WrappingPower,
+	WrappingShiftLeft, WrappingShiftLeftAssign, WrappingTimes, Xor, XorAssign
 }
 
 export class ParseError extends Error {
@@ -266,7 +271,7 @@ export const parseExpressions = function* (
 		const firstToken = tokens[state.cursor]!
 		let expression: Expression
 
-		const expressionbase: ExpressionBase =
+		const expressionBase: ExpressionBase =
 			{ index: firstToken.index, line: firstToken.line, column: firstToken.column }
 
 		switch (firstToken.kind) {
@@ -282,7 +287,7 @@ export const parseExpressions = function* (
 					kind: ExpressionKind.While,
 					condition,
 					body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
-					...expressionbase
+					...expressionBase
 				}
 
 				indentLevel--
@@ -304,7 +309,7 @@ export const parseExpressions = function* (
 					truthyBranch = {
 						kind: ExpressionKind.Do,
 						body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
-						...expressionbase
+						...expressionBase
 					}
 
 					indentLevel--
@@ -325,7 +330,7 @@ export const parseExpressions = function* (
 						falseyBranch = {
 							kind: ExpressionKind.Do,
 							body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
-							...expressionbase
+							...expressionBase
 						}
 
 						indentLevel--
@@ -333,7 +338,7 @@ export const parseExpressions = function* (
 						falseyBranch = parseExpression(false)
 				}
 
-				expression = { kind: ExpressionKind.If, condition, truthyBranch, falseyBranch, ...expressionbase }
+				expression = { kind: ExpressionKind.If, condition, truthyBranch, falseyBranch, ...expressionBase }
 			} break
 
 			case TokenKind.Do: {
@@ -344,7 +349,7 @@ export const parseExpressions = function* (
 				expression = {
 					kind: ExpressionKind.Do,
 					body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
-					...expressionbase
+					...expressionBase
 				}
 
 				indentLevel--
@@ -358,21 +363,21 @@ export const parseExpressions = function* (
 
 			case TokenKind.Null: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Null, ...expressionbase }
+				expression = { kind: ExpressionKind.Null, ...expressionBase }
 			} break
 
 			case TokenKind.Void: {
 				state.cursor++
 
 				expression =
-					{ kind: ExpressionKind.Void, expression: parseExpression(noParseAssign), ...expressionbase }
+					{ kind: ExpressionKind.Void, expression: parseExpression(noParseAssign), ...expressionBase }
 			} break
 
 			case TokenKind.Return: {
 				state.cursor++
 
 				expression =
-					{ kind: ExpressionKind.Return, expression: maybeParseExpression(noParseAssign), ...expressionbase }
+					{ kind: ExpressionKind.Return, expression: maybeParseExpression(noParseAssign), ...expressionBase }
 			} break
 
 			case TokenKind.Let: {
@@ -381,7 +386,7 @@ export const parseExpressions = function* (
 				const binding: Expression.Identifier = {
 					kind: ExpressionKind.Identifier,
 					name: expectToken(TokenKind.Identifier).data!,
-					...expressionbase
+					...expressionBase
 				}
 
 				let type
@@ -398,12 +403,12 @@ export const parseExpressions = function* (
 					initialValue = parseExpression(noParseAssign)
 				}
 
-				expression = { kind: ExpressionKind.Let, binding, type, initialValue, ...expressionbase }
+				expression = { kind: ExpressionKind.Let, binding, type, initialValue, ...expressionBase }
 			} break
 
 			case TokenKind.Identifier: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Identifier, name: firstToken.data, ...expressionbase }
+				expression = { kind: ExpressionKind.Identifier, name: firstToken.data, ...expressionBase }
 
 				const secondToken = tokens[state.cursor]
 
@@ -420,32 +425,32 @@ export const parseExpressions = function* (
 								kind: ExpressionKind.NormalAssign,
 								binding: expression,
 								value: parseExpression(noParseAssign),
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
 						case TokenKind.Increment: {
 							state.cursor++
-							expression = { kind: ExpressionKind.Increment, binding: expression, ...expressionbase }
+							expression = { kind: ExpressionKind.Increment, binding: expression, ...expressionBase }
 						} break
 
 						case TokenKind.Decrement: {
 							state.cursor++
-							expression = { kind: ExpressionKind.Decrement, binding: expression, ...expressionbase }
+							expression = { kind: ExpressionKind.Decrement, binding: expression, ...expressionBase }
 						} break
 
 						case TokenKind.WrappingIncrement: {
 							state.cursor++
 
 							expression =
-								{ kind: ExpressionKind.WrappingIncrement, binding: expression, ...expressionbase }
+								{ kind: ExpressionKind.WrappingIncrement, binding: expression, ...expressionBase }
 						} break
 
 						case TokenKind.WrappingDecrement: {
 							state.cursor++
 
 							expression =
-								{ kind: ExpressionKind.WrappingDecrement, binding: expression, ...expressionbase }
+								{ kind: ExpressionKind.WrappingDecrement, binding: expression, ...expressionBase }
 						}
 					}
 				}
@@ -464,7 +469,7 @@ export const parseExpressions = function* (
 							expression = {
 								kind: ExpressionKind.Float16Literal,
 								value: Number(firstToken.data),
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
@@ -474,7 +479,7 @@ export const parseExpressions = function* (
 							expression = {
 								kind: ExpressionKind.Float32Literal,
 								value: Number(firstToken.data),
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
@@ -484,7 +489,7 @@ export const parseExpressions = function* (
 							expression = {
 								kind: ExpressionKind.Float64Literal,
 								value: Number(firstToken.data),
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
@@ -494,7 +499,7 @@ export const parseExpressions = function* (
 							expression = {
 								kind: ExpressionKind.Float128Literal,
 								value: Number(firstToken.data),
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
@@ -502,7 +507,7 @@ export const parseExpressions = function* (
 							expression = {
 								kind: ExpressionKind.Float64Literal,
 								value: Number(firstToken.data),
-								...expressionbase
+								...expressionBase
 							}
 						}
 					}
@@ -517,7 +522,7 @@ export const parseExpressions = function* (
 								kind: ExpressionKind.UnsignedIntegerLiteral,
 								value: BigInt(firstToken.data),
 								bits,
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
@@ -530,7 +535,7 @@ export const parseExpressions = function* (
 								kind: ExpressionKind.SignedIntegerLiteral,
 								value: BigInt(firstToken.data),
 								bits,
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
@@ -540,7 +545,7 @@ export const parseExpressions = function* (
 							expression = {
 								kind: ExpressionKind.Float16Literal,
 								value: Number(firstToken.data),
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
@@ -550,7 +555,7 @@ export const parseExpressions = function* (
 							expression = {
 								kind: ExpressionKind.Float32Literal,
 								value: Number(firstToken.data),
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
@@ -560,7 +565,7 @@ export const parseExpressions = function* (
 							expression = {
 								kind: ExpressionKind.Float64Literal,
 								value: Number(firstToken.data),
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
@@ -570,7 +575,7 @@ export const parseExpressions = function* (
 							expression = {
 								kind: ExpressionKind.Float128Literal,
 								value: Number(firstToken.data),
-								...expressionbase
+								...expressionBase
 							}
 						} break
 
@@ -581,7 +586,7 @@ export const parseExpressions = function* (
 								kind: ExpressionKind.UnsignedIntegerLiteral,
 								value,
 								bits: getIntegerLength(value),
-								...expressionbase
+								...expressionBase
 							}
 						}
 					}
@@ -590,22 +595,22 @@ export const parseExpressions = function* (
 
 			case TokenKind.Float16Type: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Float16Type, ...expressionbase }
+				expression = { kind: ExpressionKind.Float16Type, ...expressionBase }
 			} break
 
 			case TokenKind.Float32Type: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Float32Type, ...expressionbase }
+				expression = { kind: ExpressionKind.Float32Type, ...expressionBase }
 			} break
 
 			case TokenKind.Float64Type: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Float64Type, ...expressionbase }
+				expression = { kind: ExpressionKind.Float64Type, ...expressionBase }
 			} break
 
 			case TokenKind.Float128Type: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Float128Type, ...expressionbase }
+				expression = { kind: ExpressionKind.Float128Type, ...expressionBase }
 			} break
 
 			case TokenKind.UnsignedIntegerType: {
@@ -614,7 +619,7 @@ export const parseExpressions = function* (
 				expression = {
 					kind: ExpressionKind.UnsignedIntegerType,
 					bits: firstToken.data ? Number(firstToken.data) : undefined,
-					...expressionbase
+					...expressionBase
 				}
 			} break
 
@@ -624,7 +629,7 @@ export const parseExpressions = function* (
 				expression = {
 					kind: ExpressionKind.SignedIntegerType,
 					bits: firstToken.data ? Number(firstToken.data) : undefined,
-					...expressionbase
+					...expressionBase
 				}
 			} break
 
@@ -635,7 +640,7 @@ export const parseExpressions = function* (
 					kind: ExpressionKind.Enum,
 					name: expectToken(TokenKind.Identifier).data,
 					members: [],
-					...expressionbase
+					...expressionBase
 				}
 
 				indentLevel++
@@ -704,7 +709,7 @@ export const parseExpressions = function* (
 					parameterType,
 					returnType,
 					body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
-					...expressionbase
+					...expressionBase
 				}
 
 				indentLevel--
@@ -712,7 +717,7 @@ export const parseExpressions = function* (
 
 			case TokenKind.OpenSquiglyBracket: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Object, entries: [], ...expressionbase }
+				expression = { kind: ExpressionKind.Object, entries: [], ...expressionBase }
 
 				if (nextTokenIs(TokenKind.CloseSquiglyBracket)) {
 					state.cursor++
@@ -748,6 +753,71 @@ export const parseExpressions = function* (
 				}
 			} break
 
+			case TokenKind.ErrorKeyword: {
+				state.cursor++
+
+				if (nextTokenIs(TokenKind.Identifier)) {
+					expression = {
+						kind: ExpressionKind.ErrorEnum,
+						name: expectToken(TokenKind.Identifier).data,
+						members: [],
+						...expressionBase
+					}
+
+					indentLevel++
+					expectNewline()
+
+					while (true) {
+						const name = expectToken(TokenKind.Identifier).data
+						let type
+
+						if (nextTokenIs(TokenKind.Colon)) {
+							state.cursor++
+							type = parseExpression(noParseAssign)
+						}
+
+						expression.members.push({ name, type })
+
+						const newline = tokens[state.cursor]
+
+						if (newline?.kind != TokenKind.Newline)
+							throw new ParseError(newline, fileName, [ TokenKind.Newline ])
+
+						if (newline.data.length < indentLevel)
+							break
+
+						if (newline.data.length != indentLevel)
+							throw new WrongIndentLevelError(newline, indentLevel, fileName)
+
+						state.cursor++
+					}
+
+					indentLevel--
+				} else {
+					expectToken(TokenKind.Dot)
+
+					return {
+						kind: ExpressionKind.GlobalError,
+						name: expectToken(TokenKind.Identifier).data,
+						...expressionBase
+					}
+				}
+			} break
+
+			case TokenKind.Loop: {
+				state.cursor++
+				indentLevel++
+				expectNewline()
+
+				expression = {
+					kind: ExpressionKind.Loop,
+					body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
+					...expressionBase
+				}
+
+				indentLevel--
+			} break
+
 			default:
 				return undefined
 		}
@@ -762,13 +832,13 @@ export const parseExpressions = function* (
 				const argument = maybeParseExpression(noParseAssign)
 
 				if (argument)
-					return { kind: ExpressionKind.Call, called: expression, argument, ...expressionbase }
+					return { kind: ExpressionKind.Call, called: expression, argument, ...expressionBase }
 
 				return expression
 			}
 
 			state.cursor++
-			expression = { kind, left: expression, right: parseExpression(noParseAssign), ...expressionbase }
+			expression = { kind, left: expression, right: parseExpression(noParseAssign), ...expressionBase }
 		}
 
 		return expression
