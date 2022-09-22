@@ -1,16 +1,7 @@
+import { Location } from "./shared"
+
 /* eslint-disable prefer-named-capture-group */
-const DEBUG = false
-
-export type Token = NonDataToken | DataToken
-
-export type NonDataToken =
-	{ kind: Exclude<TokenKind, DataTokenKind>, data: undefined, index: number, line: number, column: number }
-
-export type DataToken = { kind: DataTokenKind, data: string, index: number, line: number, column: number }
-
-export type DataTokenKind = TokenKind.BinaryNumber | TokenKind.Error | TokenKind.HexNumber | TokenKind.Identifier |
-	TokenKind.Newline | TokenKind.Number | TokenKind.OctalNumber | TokenKind.SignedIntegerType | TokenKind.String |
-	TokenKind.UnsignedIntegerType
+const DEBUG = false as boolean
 
 export enum TokenKind {
 	Abstract = 1, Add, AddAssign, And, Any, Arguments, Arrow, As, Assert, Assign, Async, Await, Become, BiggerThan,
@@ -259,21 +250,11 @@ export const DataTokenDefinitions: { regex: RegExp, tokenKind: DataTokenKind }[]
 	{ regex: /^([a-zA-Z_]\w*)/, tokenKind: TokenKind.Identifier }
 ]
 
-export const tokenise = function* (code: string): Generator<Token, void> {
+export function* tokenise(code: string): Generator<Token, void> {
 	let index = 0
 	let line = 1
 	let column = 1
 	let match
-
-	const createToken = (kind: TokenKind, data?: string): Token => {
-		const token = { kind, data, index, line, column } as Token
-
-		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-		if (DEBUG)
-			console.log(`DEBUG tokenise()`, printToken(token))
-
-		return token
-	}
 
 	while (index < code.length) {
 		if ((match = /^((?:(?:\/\/.*)?\r?\n)+)(\t*)/.exec(code.slice(index)))) {
@@ -283,10 +264,9 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 			index += match[0]!.length
 
 			if (code[index] == ` `)
-				throw new Error(`lines must not begin with whitespace`)
+				yield createToken(TokenKind.Error, code[index])
 		} else {
-			checkSpace:
-			if (!(match = /^ +/.exec(code.slice(index)))) {
+			checkSpace: if (!(match = /^ +/.exec(code.slice(index)))) {
 				for (const { regex, tokenKind } of NonDataTokenDefinitions) {
 					if ((match = regex.exec(code.slice(index)))) {
 						yield createToken(tokenKind)
@@ -315,14 +295,29 @@ export const tokenise = function* (code: string): Generator<Token, void> {
 		}
 	}
 
-	return undefined
+	function createToken(kind: TokenKind, data?: string): Token {
+		const token = { kind, data, index, line, column } as Token
+
+		if (DEBUG)
+			console.log(`DEBUG tokenise()`, printToken(token))
+
+		return token
+	}
 }
 
 export default tokenise
 
-export const printToken = (token: Token) => {
+export function printToken(token: Token) {
 	if (token.data == undefined)
 		return TokenKind[token.kind]
 
 	return `${TokenKind[token.kind]} ${JSON.stringify(token.data)}`
 }
+
+export type Token = NonDataToken | DataToken
+export type NonDataToken = Location & { kind: Exclude<TokenKind, DataTokenKind>, data: undefined }
+export type DataToken = Location & { kind: DataTokenKind, data: string }
+
+export type DataTokenKind = TokenKind.BinaryNumber | TokenKind.Error | TokenKind.HexNumber | TokenKind.Identifier |
+	TokenKind.Newline | TokenKind.Number | TokenKind.OctalNumber | TokenKind.SignedIntegerType | TokenKind.String |
+	TokenKind.UnsignedIntegerType

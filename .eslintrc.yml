@@ -192,8 +192,7 @@ rules:
     - warn
     - self
 
-  func-style:
-    - warn
+  func-style: off
 
   grouped-accessor-pairs:
     - warn

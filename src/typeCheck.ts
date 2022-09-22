@@ -1,4 +1,5 @@
 import { Expression, ExpressionKind } from "./parse"
+import { assert, error as error_, Location, assert as assert_ } from "./shared"
 
 export type Type = Type.Opaque | Type.Null | Type.True | Type.False | Type.UnsignedInteger | Type.SignedInteger | Type.Float16 |
 	Type.Float32 | Type.Float64 | Type.Float128 | Type.Union | Type.Object | Type.Function | Type.Any
@@ -27,10 +28,12 @@ export enum TypeKind {
 }
 
 export const typeCheck = (expressions: Expression[], fileName: string) => {
-	const locals = new Map<string, Type>()
+	const symbols = new Map<string, Type>()
 
 	const getExpressionType = (expression: Expression): Type => {
 		const returnedTypes: Type[] = []
+
+		const assert: (value: any, message: string) => asserts value = (value, message) => assert_(value, message, fileName, expression)
 
 		const evaluateExpression = (expression: Expression): Type => {
 			switch (expression.kind) {
@@ -143,7 +146,7 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				let bits = 0
 
 				for (const type of types) {
-					assert(type.kind == TypeKind.UnsignedInteger, `${HERE} ${printType(type)}`, expression)
+					assert(type.kind == TypeKind.UnsignedInteger, `${HERE} ${printType(type)}`)
 					bits = Math.max(bits, type.bits)
 				}
 
@@ -155,9 +158,9 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 
 		switch (expression.kind) {
 			case ExpressionKind.Function: {
-				assert(expression.parameter.kind == ExpressionKind.Identifier, `TODO handle object`, expression)
-				assert(expression.parameterType, `TODO infer type`, expression)
-				locals.set(expression.parameter.name, evaluateExpression(expression.parameterType))
+				assert(expression.parameter.kind == ExpressionKind.Identifier, `TODO handle object`)
+				assert(expression.parameterType, `TODO infer type`)
+				symbols.set(expression.parameter.name, evaluateExpression(expression.parameterType))
 
 				for (const childExpression of expression.body)
 					assertTypeIsCompatible(getExpressionType(childExpression), { kind: TypeKind.Null }, childExpression)
@@ -174,24 +177,24 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			}
 
 			case ExpressionKind.Let: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`, expression)
-				assert(expression.initialValue, `TODO no initial value`, expression)
+				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`)
+				assert(expression.initialValue, `TODO no initial value`)
 
 				if (expression.type) {
 					const type = evaluateExpression(expression.type)
 
 					assertTypeIsCompatible(getExpressionType(expression.initialValue), type, expression)
-					locals.set(expression.binding.name, type)
+					symbols.set(expression.binding.name, type)
 				} else
-					locals.set(expression.binding.name, getExpressionType(expression.initialValue))
+					symbols.set(expression.binding.name, getExpressionType(expression.initialValue))
 
 				return { kind: TypeKind.Null }
 			}
 
 			case ExpressionKind.While: {
 				// TODO I need a function to do this to share code
-				if (expression.condition.kind == ExpressionKind.Identifier && locals.has(expression.condition.name)) {
-					const type = locals.get(expression.condition.name)!
+				if (expression.condition.kind == ExpressionKind.Identifier && symbols.has(expression.condition.name)) {
+					const type = symbols.get(expression.condition.name)!
 
 					if (`isZero` in type)
 						type.isZero = false
@@ -206,19 +209,19 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			}
 
 			case ExpressionKind.NormalAssign: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`, expression)
+				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`)
 
-				if (!locals.has(expression.binding.name))
+				if (!symbols.has(expression.binding.name))
 					error(`no variable "${expression.binding.name}"`, expression)
 
-				assertTypeIsCompatible(getExpressionType(expression.value), locals.get(expression.binding.name)!, expression)
+				assertTypeIsCompatible(getExpressionType(expression.value), symbols.get(expression.binding.name)!, expression)
 
 				return { kind: TypeKind.Null }
 			}
 
 			case ExpressionKind.Identifier: {
-				if (locals.has(expression.name))
-					return locals.get(expression.name)!
+				if (symbols.has(expression.name))
+					return symbols.get(expression.name)!
 
 				error(`no variable "${expression.name}"`, expression)
 			}
@@ -236,12 +239,12 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			}
 
 			case ExpressionKind.Decrement: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`, expression)
+				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`)
 
-				if (!locals.has(expression.binding.name))
+				if (!symbols.has(expression.binding.name))
 					error(`no variable "${expression.binding.name}"`, expression)
 
-				const type = locals.get(expression.binding.name)!
+				const type = symbols.get(expression.binding.name)!
 
 				if ((type.kind == TypeKind.UnsignedInteger || type.kind == TypeKind.SignedInteger) && type.isZero != false)
 					assertTypeIsCompatible({ kind: TypeKind.SignedInteger, bits: type.bits + 1, isZero: type.isZero }, type, expression)
@@ -270,15 +273,15 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			}
 
 			case ExpressionKind.If: {
-				assert(!expression.falseyBranch, `TODO else branch`, expression)
+				assert(!expression.falseyBranch, `TODO else branch`)
 
 				// TODO I need a function to do this to share code
 				if (
 					expression.condition.kind == ExpressionKind.BiggerThan &&
 					expression.condition.left.kind == ExpressionKind.Identifier &&
-					locals.has(expression.condition.left.name)
+					symbols.has(expression.condition.left.name)
 				) {
-					const leftType = locals.get(expression.condition.left.name)!
+					const leftType = symbols.get(expression.condition.left.name)!
 					const rightType = evaluateExpression(expression.condition.right)
 
 					if (leftType.kind == TypeKind.UnsignedInteger && rightType.kind == TypeKind.UnsignedInteger)
@@ -317,9 +320,13 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 		}
 	}
 
+	const error: (message: string, location: Location) => never =
+		(message, location) => error_(message, fileName, location)
+
 	const assertTypeIsCompatible = (subject: Type, target: Type, expression: Expression) => assert(
 		isTypeCompatible(subject, target),
 		`${printType(subject)} is not compatible with ${printType(target)}`,
+		fileName,
 		expression
 	)
 
@@ -485,17 +492,6 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			default:
 				throw new Error(`TODO handle TypeKind.${TypeKind[type.kind]}`)
 		}
-	}
-
-	// stupid typescript requires an explicit type annotation here for some reason
-	const assert: (value: any, message: string, expression: Expression) => asserts value = (value, message, expression) => {
-		if (!value)
-			error(message, expression)
-	}
-
-	// and again here
-	const error: (message: string, expression: Expression) => never = (message, expression) => {
-		throw new Error(`${message} at ${fileName}:${expression.line}:${expression.column}`)
 	}
 
 	for (const expression of expressions)
