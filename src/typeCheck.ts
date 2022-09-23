@@ -27,10 +27,13 @@ export enum TypeKind {
 	Float32, Float64, Float128, Union, Object, Function, Any
 }
 
-export const typeCheck = (expressions: Expression[], fileName: string) => {
+export function typeCheck(expressions: Expression[], fileName: string) {
 	const symbols = new Map<string, Type>()
 
-	const getExpressionType = (expression: Expression): Type => {
+	for (const expression of expressions)
+		assertTypeIsCompatible(getExpressionType(expression), { kind: TypeKind.Null }, expression)
+
+	function getExpressionType(expression: Expression): Type {
 		const returnedTypes: Type[] = []
 
 		const assert: (value: any, message: string) => asserts value = (value, message) => assert_(value, message, fileName, expression)
@@ -276,11 +279,9 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				assert(!expression.falseyBranch, `TODO else branch`)
 
 				// TODO I need a function to do this to share code
-				if (
-					expression.condition.kind == ExpressionKind.BiggerThan &&
+				if (expression.condition.kind == ExpressionKind.BiggerThan &&
 					expression.condition.left.kind == ExpressionKind.Identifier &&
-					symbols.has(expression.condition.left.name)
-				) {
+					symbols.has(expression.condition.left.name)) {
 					const leftType = symbols.get(expression.condition.left.name)!
 					const rightType = evaluateExpression(expression.condition.right)
 
@@ -294,7 +295,6 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 					return truthyBranchType
 
 				// TODO I need a function to resolve types and widen if needed
-
 				return {
 					kind: TypeKind.Union,
 					members: truthyBranchType.kind == TypeKind.Union ?
@@ -320,17 +320,20 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 		}
 	}
 
-	const error: (message: string, location: Location) => never =
-		(message, location) => error_(message, fileName, location)
+	function error(message: string, location: Location): never {
+		return error_(message, fileName, location)
+	}
 
-	const assertTypeIsCompatible = (subject: Type, target: Type, expression: Expression) => assert(
-		isTypeCompatible(subject, target),
-		`${printType(subject)} is not compatible with ${printType(target)}`,
-		fileName,
-		expression
-	)
+	function assertTypeIsCompatible(subject: Type, target: Type, expression: Expression) {
+		assert(
+			isTypeCompatible(subject, target),
+			`${printType(subject)} is not compatible with ${printType(target)}`,
+			fileName,
+			expression
+		)
+	}
 
-	const isTypeCompatible = (subject: Type, target: Type): boolean => {
+	function isTypeCompatible(subject: Type, target: Type): boolean {
 		if (target.kind == TypeKind.Any)
 			return true
 
@@ -440,7 +443,7 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 		}
 	}
 
-	const printType = (type: Type): string => {
+	function printType(type: Type): string {
 		switch (type.kind) {
 			case TypeKind.Null:
 				return `null`
@@ -480,8 +483,8 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 			case TypeKind.Function: {
 				const printedReturnType = type.returnType.kind == TypeKind.Union ||
 					type.returnType.kind == TypeKind.Function ?
-						`(${printType(type.returnType)})` :
-						printType(type.returnType)
+					`(${printType(type.returnType)})` :
+					printType(type.returnType)
 
 				return `(${[ ...type.parameters ].map(type => printType(type)).join(`, `)}): ${printedReturnType}`
 			}
@@ -493,9 +496,6 @@ export const typeCheck = (expressions: Expression[], fileName: string) => {
 				throw new Error(`TODO handle TypeKind.${TypeKind[type.kind]}`)
 		}
 	}
-
-	for (const expression of expressions)
-		assertTypeIsCompatible(getExpressionType(expression), { kind: TypeKind.Null }, expression)
 }
 
 export default typeCheck
