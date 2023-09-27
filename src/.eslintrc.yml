@@ -1,9 +1,5 @@
-extends:
-  - ../.eslintrc.yml
+extends: "@samual/eslint-config/typescript.yml"
 
 rules:
-  "@typescript-eslint/no-unnecessary-condition":
-    - warn
-    - allowConstantLoopConditions: true
-
-  "@typescript-eslint/no-unused-vars": off
+  unicorn/throw-new-error: off
+  no-fallthrough: off

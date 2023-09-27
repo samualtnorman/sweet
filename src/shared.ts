@@ -16,9 +16,9 @@ export function assert(value: any, message: string, fileName: string, location: 
 
 export function error(message: string, fileName: string, location?: Location): never {
 	if (location)
-		throw new Error(`${message} at ${fileName}:${location.line}:${location.column}`)
+		throw Error(`${message} at ${fileName}:${location.line}:${location.column}`)
 
-	throw new Error(`${message} in ${fileName}`)
+	throw Error(`${message} in ${fileName}`)
 }
 
 export type Location = { index: number, line: number, column: number }

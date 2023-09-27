@@ -4,9 +4,8 @@
 		"noUncheckedIndexedAccess": true,
 		"strict": true,
 		"useUnknownInCatchVariables": true,
-		"strictNullChecks": true,
-		"lib": [ "DOM" ]
+		"strictNullChecks": true
 	},
-	"extends": "../tsconfig.json",
+	"extends": "..",
 	"include": [ "**/*" ]
 }

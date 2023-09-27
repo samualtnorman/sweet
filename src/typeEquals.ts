@@ -20,10 +20,10 @@ export const typeEquals = (a: Type, b: Type): boolean => {
 			return a.bits == (b as Type.UnsignedInteger | Type.SignedInteger).bits
 
 		case TypeKind.Union:
-			throw new Error(HERE)
+			throw Error(HERE)
 
 		case TypeKind.Object:
-			throw new Error(HERE)
+			throw Error(HERE)
 
 		case TypeKind.Function: {
 			if (a.parameters.length != (b as Type.Function).parameters.length)
@@ -38,7 +38,7 @@ export const typeEquals = (a: Type, b: Type): boolean => {
 		}
 
 		default:
-			throw new Error(`TODO handle ${TypeKind[a.kind]}`)
+			throw Error(`TODO handle ${TypeKind[a.kind]}`)
 	}
 }
 

@@ -439,7 +439,7 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				return subject == target
 
 			default:
-				throw new Error(`TODO handle TypeKind.${TypeKind[subject.kind]}`)
+				throw Error(`TODO handle TypeKind.${TypeKind[subject.kind]}`)
 		}
 	}
 
@@ -493,7 +493,7 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				return `any`
 
 			default:
-				throw new Error(`TODO handle TypeKind.${TypeKind[type.kind]}`)
+				throw Error(`TODO handle TypeKind.${TypeKind[type.kind]}`)
 		}
 	}
 }

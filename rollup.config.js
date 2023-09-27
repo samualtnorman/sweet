@@ -3,7 +3,7 @@ import commonJS from "@rollup/plugin-commonjs"
 import json from "@rollup/plugin-json"
 import nodeResolve from "@rollup/plugin-node-resolve"
 import { readdir as readDirectory } from "fs/promises"
-import packageConfig_ from "./package.json"
+import packageConfig_ from "./package.json" assert { type: "json" }
 
 /** @typedef {import("rollup").RollupOptions} RollupOptions */
 

@@ -1,4 +1,4 @@
-import { assert } from "@samual/lib"
+import { assert } from "@samual/lib/assert"
 import { error, getIntegerLength, Location } from "./shared"
 import { DataToken, DataTokenKind, NonDataToken, printToken, Token, TokenKind } from "./tokenise"
 
@@ -51,8 +51,7 @@ export const BinaryOperatorTokensToExpressionKinds: { [Key in TokenKind]?: Expre
 	[TokenKind.Concatenate]: ExpressionKind.Concatenate,
 	[TokenKind.To]: ExpressionKind.To,
 	[TokenKind.As]: ExpressionKind.As,
-	[TokenKind.DotDotDot]: ExpressionKind.Range,
-	[TokenKind.Union]: ExpressionKind.Union
+	[TokenKind.DotDotDot]: ExpressionKind.Range
 }
 
 export const TypeTokenKindsToTypeExpressionKinds: { [Key in TokenKind]?: ExpressionKind } = {
@@ -788,6 +787,34 @@ export function* parseExpressions(
 				}
 			} break
 
+			case TokenKind.Declare: {
+				state.cursor++
+				expectToken(TokenKind.Import)
+
+				expression = {
+					kind: ExpressionKind.DeclaredImport,
+					module: expectToken(TokenKind.String).data,
+					members: [],
+					...location
+				}
+
+				expectToken(TokenKind.OpenSquiglyBracket)
+				indentLevel++
+
+				while (true) {
+					const name = expectToken(TokenKind.Identifier).data
+					const as = maybeEatOneOf(TokenKind.As) ? expectToken(TokenKind.Identifier).data : undefined
+
+					expectToken(TokenKind.Colon)
+					expression.members.push({ name, as: as ?? name, type: parseExpression(true) })
+
+					if (maybeEatOneOf(TokenKind.CloseSquiglyBracket))
+						break
+
+					eatOneOf(TokenKind.Newline, TokenKind.Comma)
+				}
+			} break
+
 			default:
 				return
 		}
@@ -866,13 +893,18 @@ export function* parseExpressions(
 			errorWrongIndentLevel(newline, indentLevel, tokens[state.cursor])
 	}
 
-	function nextTokenIs(...types: TokenKind[]): boolean {
-		if (tokens.length - state.cursor < types.length)
+	function nextTokenIs(...kinds: TokenKind[]): boolean {
+		if (tokens.length - state.cursor < kinds.length)
 			return false
 
-		for (const [ typeIndex, type ] of types.entries()) {
-			if (tokens[state.cursor + typeIndex]!.kind != type)
+		for (const [ index, kind ] of kinds.entries()) {
+			const token = tokens[state.cursor + index]!
+
+			if (token.kind != kind)
 				return false
+
+			if (token.kind == TokenKind.Newline && token.data.length != indentLevel)
+				errorWrongIndentLevel(token, indentLevel, tokens[state.cursor])
 		}
 
 		return true
@@ -887,6 +919,23 @@ export function* parseExpressions(
 		state.cursor++
 
 		return token as any
+	}
+
+	function maybeEatOneOf(...kinds: TokenKind[]): boolean {
+		for (const kind of kinds) {
+			if (nextTokenIs(kind)) {
+				state.cursor++
+
+				return true
+			}
+		}
+
+		return false
+	}
+
+	function eatOneOf(...kinds: TokenKind[]): void {
+		if (!maybeEatOneOf(...kinds))
+			errorUnexpectedToken(tokens[state.cursor], kinds)
 	}
 }
 

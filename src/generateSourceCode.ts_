@@ -124,6 +124,6 @@ export function generateSourceFromNode(node: Node, indentString: string, indentL
 			return `(${generateSourceFromNode(node.left, indentString, indentLevel)} != ${generateSourceFromNode(node.right, indentString, indentLevel)})`
 
 		default:
-			throw new Error(`${HERE} ${ExpressionKind[node.kind]}`)
+			throw Error(`${HERE} ${ExpressionKind[node.kind]}`)
 	}
 }

@@ -103,7 +103,7 @@ export const isTypeCompatible = (subject: Type, target: Type): boolean => {
 		}
 
 		case TypeKind.Any:
-			throw new Error(HERE)
+			throw Error(HERE)
 	}
 }
 

@@ -47,7 +47,7 @@ export function resolveTypes(...types: Type[]): Type {
 				} break
 
 				default:
-					throw new Error(`${HERE} ${printType(type)}`)
+					throw Error(`${HERE} ${printType(type)}`)
 			}
 		}
 
@@ -65,7 +65,7 @@ export function resolveTypes(...types: Type[]): Type {
 		return { kind: TypeKind.UnsignedInteger, bits }
 	}
 
-	throw new Error(HERE)
+	throw Error(HERE)
 }
 
 export default resolveTypes

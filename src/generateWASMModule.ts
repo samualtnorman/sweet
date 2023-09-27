@@ -30,7 +30,7 @@ export const generateWASMModule = (expressions: Expression[]) => {
 				return module.return(expression.expression && generateWASMExpression(expression.expression, context))
 
 			case ExpressionKind.Add:
-				throw new Error(`+ operator not implemented`)
+				throw Error(`+ operator not implemented`)
 
 			case ExpressionKind.Identifier: {
 				const reference = ensure(context.references.get(expression.name), `no variable "${expression.name}"`)
@@ -45,7 +45,7 @@ export const generateWASMModule = (expressions: Expression[]) => {
 						return module.global.get(expression.name, reference.type)
 
 					case ReferenceKind.Function:
-						throw new Error(HERE)
+						throw Error(HERE)
 				}
 			}
 
@@ -109,7 +109,7 @@ export const generateWASMModule = (expressions: Expression[]) => {
 						return module.global.set(expression.binding.name, generateWASMExpression(expression.value, context))
 
 					case ReferenceKind.Function:
-						throw new Error(HERE)
+						throw Error(HERE)
 				}
 			}
 
@@ -139,7 +139,7 @@ export const generateWASMModule = (expressions: Expression[]) => {
 					}
 
 					case ReferenceKind.Function:
-						throw new Error(HERE)
+						throw Error(HERE)
 				}
 			}
 
@@ -169,7 +169,7 @@ export const generateWASMModule = (expressions: Expression[]) => {
 					}
 
 					case ReferenceKind.Function:
-						throw new Error(HERE)
+						throw Error(HERE)
 				}
 			}
 
@@ -241,7 +241,7 @@ export const generateWASMModule = (expressions: Expression[]) => {
 			}
 
 			default:
-				throw new Error(`${HERE} ${ExpressionKind[expression.kind]}`)
+				throw Error(`${HERE} ${ExpressionKind[expression.kind]}`)
 		}
 	}
 
@@ -304,7 +304,7 @@ export const evaluateType = (expression: Expression) => {
 			return binaryen.none
 
 		default:
-			throw new Error(`${HERE} ${ExpressionKind[expression.kind]}`)
+			throw Error(`${HERE} ${ExpressionKind[expression.kind]}`)
 	}
 }
 

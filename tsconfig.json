@@ -4,8 +4,6 @@
 		"allowUnusedLabels": false,
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitOverride": true,
-		"noImplicitReturns": true,
-		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"moduleResolution": "Node",
 		"resolveJsonModule": true,
@@ -13,10 +11,9 @@
 		"checkJs": true,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
-		"target": "ESNext",
+		"target": "ES2022",
 		"skipLibCheck": true,
-		"module": "ESNext",
-		"lib": [ "ESNext", "DOM" ]
+		"module": "ESNext"
 	},
-	"include": [ "*", "scripts/*", "test/*" ]
+	"include": [ "*", "scripts/*" ]
 }

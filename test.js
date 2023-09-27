@@ -3,7 +3,7 @@ import { readdirSync as readDirectorySync } from "fs"
 import { readFile } from "fs/promises"
 import parse from "./dist/parse.js"
 import { printExpressions } from "./dist/printExpression.js"
-import tokenise from "./dist/tokenise.js"
+import tokenise, { TokenKind } from "./dist/tokenise.js"
 import typeCheck from "./dist/typeCheck.js"
 
 // for (const testFileName of readDirectorySync(`test`)) {
@@ -24,10 +24,13 @@ import typeCheck from "./dist/typeCheck.js"
 // 		})
 // }
 
-const fileName = `test/test.sw`
+const fileName = `test.sw`
 const sourceCode = await readFile(fileName, { encoding: `utf-8` })
 const tokens = [ ...tokenise(sourceCode) ]
-const expressions = [ ...parse(tokens, fileName) ]
 
-console.log(printExpressions(expressions, `    `))
-typeCheck(expressions, fileName)
+console.log(tokens.map(token => ({ ...token, kind: TokenKind[token.kind] })))
+
+// const expressions = [ ...parse(tokens, fileName) ]
+
+// console.log(printExpressions(expressions, `    `))
+// typeCheck(expressions, fileName)
