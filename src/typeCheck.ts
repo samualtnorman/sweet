@@ -1,4 +1,4 @@
-import { Expression, ExpressionKind } from "./parse"
+import { Expression, ExpressionTag } from "./parse"
 import { assert, error as error_, Location, assert as assert_ } from "./shared"
 
 export type Type = Type.Opaque | Type.Null | Type.True | Type.False | Type.UnsignedInteger | Type.SignedInteger | Type.Float16 |
@@ -40,28 +40,28 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 
 		const evaluateExpression = (expression: Expression): Type => {
 			switch (expression.kind) {
-				case ExpressionKind.SignedIntegerType:
+				case ExpressionTag.SignedIntegerType:
 					return { kind: TypeKind.SignedInteger, bits: expression.bits || 32, isZero: undefined }
 
-				case ExpressionKind.UnsignedIntegerType:
+				case ExpressionTag.UnsignedIntegerType:
 					return { kind: TypeKind.UnsignedInteger, bits: expression.bits || 32, isZero: undefined }
 
-				case ExpressionKind.Float16Type:
+				case ExpressionTag.Float16Type:
 					return { kind: TypeKind.Float16 }
 
-				case ExpressionKind.Float32Type:
+				case ExpressionTag.Float32Type:
 					return { kind: TypeKind.Float32 }
 
-				case ExpressionKind.Float64Type:
+				case ExpressionTag.Float64Type:
 					return { kind: TypeKind.Float64 }
 
-				case ExpressionKind.Float128Type:
+				case ExpressionTag.Float128Type:
 					return { kind: TypeKind.Float128 }
 
-				case ExpressionKind.Null:
+				case ExpressionTag.Null:
 					return { kind: TypeKind.Null }
 
-				case ExpressionKind.Union: {
+				case ExpressionTag.Union: {
 					const leftEvaluated = evaluateExpression(expression.left)
 					const rightEvaluated = evaluateExpression(expression.right)
 
@@ -86,7 +86,7 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				}
 
 				default:
-					error(`TODO handle ExpressionKind.${ExpressionKind[expression.kind]}`, expression)
+					error(`TODO handle ExpressionKind.${ExpressionTag[expression.kind]}`, expression)
 			}
 		}
 
@@ -160,8 +160,8 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 		}
 
 		switch (expression.kind) {
-			case ExpressionKind.Function: {
-				assert(expression.parameter.kind == ExpressionKind.Identifier, `TODO handle object`)
+			case ExpressionTag.Function: {
+				assert(expression.parameter.kind == ExpressionTag.Identifier, `TODO handle object`)
 				assert(expression.parameterType, `TODO infer type`)
 				symbols.set(expression.parameter.name, evaluateExpression(expression.parameterType))
 
@@ -179,8 +179,8 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				return { kind: TypeKind.Null }
 			}
 
-			case ExpressionKind.Let: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`)
+			case ExpressionTag.Let: {
+				assert(expression.binding.kind == ExpressionTag.Identifier, `TODO destructure`)
 				assert(expression.initialValue, `TODO no initial value`)
 
 				if (expression.type) {
@@ -194,9 +194,9 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				return { kind: TypeKind.Null }
 			}
 
-			case ExpressionKind.While: {
+			case ExpressionTag.While: {
 				// TODO I need a function to do this to share code
-				if (expression.condition.kind == ExpressionKind.Identifier && symbols.has(expression.condition.name)) {
+				if (expression.condition.kind == ExpressionTag.Identifier && symbols.has(expression.condition.name)) {
 					const type = symbols.get(expression.condition.name)!
 
 					if (`isZero` in type)
@@ -211,8 +211,8 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				return { kind: TypeKind.Null }
 			}
 
-			case ExpressionKind.NormalAssign: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`)
+			case ExpressionTag.NormalAssign: {
+				assert(expression.binding.kind == ExpressionTag.Identifier, `TODO destructure`)
 
 				if (!symbols.has(expression.binding.name))
 					error(`no variable "${expression.binding.name}"`, expression)
@@ -222,17 +222,17 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				return { kind: TypeKind.Null }
 			}
 
-			case ExpressionKind.Identifier: {
+			case ExpressionTag.Identifier: {
 				if (symbols.has(expression.name))
 					return symbols.get(expression.name)!
 
 				error(`no variable "${expression.name}"`, expression)
 			}
 
-			case ExpressionKind.UnsignedIntegerLiteral:
+			case ExpressionTag.UnsignedIntegerLiteral:
 				return { kind: TypeKind.UnsignedInteger, bits: expression.bits, isZero: undefined }
 
-			case ExpressionKind.Add: {
+			case ExpressionTag.Add: {
 				const type = resolveTypes(getExpressionType(expression.left), getExpressionType(expression.right))
 
 				if (type.kind == TypeKind.UnsignedInteger || type.kind == TypeKind.SignedInteger)
@@ -241,8 +241,8 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				return type
 			}
 
-			case ExpressionKind.Decrement: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, `TODO destructure`)
+			case ExpressionTag.Decrement: {
+				assert(expression.binding.kind == ExpressionTag.Identifier, `TODO destructure`)
 
 				if (!symbols.has(expression.binding.name))
 					error(`no variable "${expression.binding.name}"`, expression)
@@ -255,7 +255,7 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				return { kind: TypeKind.Null }
 			}
 
-			case ExpressionKind.Return: {
+			case ExpressionTag.Return: {
 				returnedTypes.push(
 					expression.expression ? getExpressionType(expression.expression) : { kind: TypeKind.Null }
 				)
@@ -263,10 +263,10 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				return { kind: TypeKind.Null }
 			}
 
-			case ExpressionKind.WrappingAdd:
+			case ExpressionTag.WrappingAdd:
 				return resolveTypes(getExpressionType(expression.left), getExpressionType(expression.right))
 
-			case ExpressionKind.Minus: {
+			case ExpressionTag.Minus: {
 				const type = resolveTypes(getExpressionType(expression.left), getExpressionType(expression.right))
 
 				if (type.kind == TypeKind.UnsignedInteger || type.kind == TypeKind.SignedInteger)
@@ -275,12 +275,12 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				return type
 			}
 
-			case ExpressionKind.If: {
+			case ExpressionTag.If: {
 				assert(!expression.falseyBranch, `TODO else branch`)
 
 				// TODO I need a function to do this to share code
-				if (expression.condition.kind == ExpressionKind.BiggerThan &&
-					expression.condition.left.kind == ExpressionKind.Identifier &&
+				if (expression.condition.kind == ExpressionTag.BiggerThan &&
+					expression.condition.left.kind == ExpressionTag.Identifier &&
 					symbols.has(expression.condition.left.name)) {
 					const leftType = symbols.get(expression.condition.left.name)!
 					const rightType = evaluateExpression(expression.condition.right)
@@ -303,20 +303,20 @@ export function typeCheck(expressions: Expression[], fileName: string) {
 				}
 			}
 
-			case ExpressionKind.Do:
-			case ExpressionKind.Loop: {
+			case ExpressionTag.Do:
+			case ExpressionTag.Loop: {
 				for (const childExpression of expression.body)
 					assertTypeIsCompatible(getExpressionType(childExpression), { kind: TypeKind.Null }, childExpression)
 
 				return { kind: TypeKind.Null }
 			}
 
-			case ExpressionKind.GlobalError: {
+			case ExpressionTag.GlobalError: {
 				return { kind: TypeKind.Opaque }
 			}
 
 			default:
-				error(`TODO handle ExpressionKind.${ExpressionKind[expression.kind]}`, expression)
+				error(`TODO handle ExpressionKind.${ExpressionTag[expression.kind]}`, expression)
 		}
 	}
 

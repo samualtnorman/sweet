@@ -1,38 +1,29 @@
 /* eslint-disable unicorn/no-null */
 import { assert, ensure } from "@samual/lib/assert"
 import binaryen from "binaryen"
-import { Expression, ExpressionKind } from "./parse"
+import { ExpressionTag, type Expression } from "./parse"
 
-enum ReferenceKind {
-	LocalLet,
-	LocalConst,
-	GlobalLet,
-	GlobalConst,
-	Function
-}
+enum ReferenceKind { LocalLet, LocalConst, GlobalLet, GlobalConst, Function }
 
 type Reference =
 	{ kind: ReferenceKind.LocalLet | ReferenceKind.LocalConst, index: number, type: number } |
 	{ kind: ReferenceKind.GlobalLet | ReferenceKind.GlobalConst, type: number } |
 	{ kind: ReferenceKind.Function, returnType: number }
 
-export type Context = {
-	locals: number[]
-	references: Map<string, Reference>
-}
+export type Context = { locals: number[], references: Map<string, Reference> }
 
-export const generateWASMModule = (expressions: Expression[]) => {
+export const generateWasmModule = (expressions: Expression[]) => {
 	const module = new binaryen.Module()
 
 	const generateWASMExpression = (expression: Expression, context: Context): number => {
 		switch (expression.kind) {
-			case ExpressionKind.Return:
+			case ExpressionTag.Return:
 				return module.return(expression.expression && generateWASMExpression(expression.expression, context))
 
-			case ExpressionKind.Add:
+			case ExpressionTag.Add:
 				throw Error(`+ operator not implemented`)
 
-			case ExpressionKind.Identifier: {
+			case ExpressionTag.Identifier: {
 				const reference = ensure(context.references.get(expression.name), `no variable "${expression.name}"`)
 
 				switch (reference.kind) {
@@ -49,11 +40,11 @@ export const generateWASMModule = (expressions: Expression[]) => {
 				}
 			}
 
-			case ExpressionKind.Let: {
+			case ExpressionTag.Let: {
 				assert(expression.type, HERE)
-				assert(expression.type.kind == ExpressionKind.SignedIntegerType, HERE)
+				assert(expression.type.kind == ExpressionTag.SignedIntegerType, HERE)
 				assert(expression.type.bits == 32, HERE)
-				assert(expression.binding.kind == ExpressionKind.Identifier, HERE)
+				assert(expression.binding.kind == ExpressionTag.Identifier, HERE)
 
 				const index = context.locals.push(binaryen.i32)
 
@@ -68,10 +59,10 @@ export const generateWASMModule = (expressions: Expression[]) => {
 				return module.nop()
 			}
 
-			case ExpressionKind.UnsignedIntegerLiteral:
+			case ExpressionTag.UnsignedIntegerLiteral:
 				return module.i32.const(Number(expression.value))
 
-			case ExpressionKind.While: {
+			case ExpressionTag.While: {
 				return module.loop(
 					`loop`,
 					module.if(
@@ -87,15 +78,15 @@ export const generateWASMModule = (expressions: Expression[]) => {
 				)
 			}
 
-			case ExpressionKind.WrappingAdd: {
+			case ExpressionTag.WrappingAdd: {
 				return module.i32.add(
 					generateWASMExpression(expression.left, context),
 					generateWASMExpression(expression.right, context)
 				)
 			}
 
-			case ExpressionKind.NormalAssign: {
-				assert(expression.binding.kind == ExpressionKind.Identifier, HERE)
+			case ExpressionTag.NormalAssign: {
+				assert(expression.binding.kind == ExpressionTag.Identifier, HERE)
 
 				const reference = ensure(context.references.get(expression.binding.name), HERE)
 
@@ -113,7 +104,7 @@ export const generateWASMModule = (expressions: Expression[]) => {
 				}
 			}
 
-			case ExpressionKind.Decrement: {
+			case ExpressionTag.Decrement: {
 				const reference = ensure(context.references.get(expression.binding.name), HERE)
 
 				switch (reference.kind) {
@@ -143,7 +134,7 @@ export const generateWASMModule = (expressions: Expression[]) => {
 				}
 			}
 
-			case ExpressionKind.Increment: {
+			case ExpressionTag.Increment: {
 				const reference = ensure(context.references.get(expression.binding.name), HERE)
 
 				switch (reference.kind) {
@@ -173,10 +164,10 @@ export const generateWASMModule = (expressions: Expression[]) => {
 				}
 			}
 
-			case ExpressionKind.Function: {
+			case ExpressionTag.Function: {
 				assert(expression.returnType, HERE)
 				assert(expression.parameterType, HERE)
-				assert(expression.parameter.kind == ExpressionKind.Identifier, HERE)
+				assert(expression.parameter.kind == ExpressionTag.Identifier, HERE)
 
 				const returnType = evaluateType(expression.returnType)
 				const type = evaluateType(expression.parameterType)
@@ -233,7 +224,7 @@ export const generateWASMModule = (expressions: Expression[]) => {
 			// 	)
 			// }
 
-			case ExpressionKind.WrappingTimes: {
+			case ExpressionTag.WrappingTimes: {
 				return module.i32.mul(
 					generateWASMExpression(expression.left, context),
 					generateWASMExpression(expression.right, context)
@@ -241,14 +232,11 @@ export const generateWASMModule = (expressions: Expression[]) => {
 			}
 
 			default:
-				throw Error(`${HERE} ${ExpressionKind[expression.kind]}`)
+				throw Error(`${HERE} ${ExpressionTag[expression.kind]}`)
 		}
 	}
 
-	const context: Context = {
-		locals: [],
-		references: new Map()
-	}
+	const context: Context = { locals: [], references: new Map() }
 
 	module.setStart(
 		module.addFunction(
@@ -259,19 +247,13 @@ export const generateWASMModule = (expressions: Expression[]) => {
 			module.block(
 				null,
 				expressions.map(expression => {
-					if (expression.kind == ExpressionKind.Let) {
+					if (expression.kind == ExpressionTag.Let) {
 						assert(expression.type, HERE)
-						assert(expression.binding.kind == ExpressionKind.Identifier, HERE)
+						assert(expression.binding.kind == ExpressionTag.Identifier, HERE)
 
 						const type = evaluateType(expression.type)
 
-						module.addGlobal(
-							expression.binding.name,
-							type,
-							true,
-							module.i32.const(0)
-						)
-
+						module.addGlobal(expression.binding.name, type, true, module.i32.const(0))
 						module.addGlobalExport(expression.binding.name, expression.binding.name)
 						context.references.set(expression.binding.name, { kind: ReferenceKind.GlobalLet, type })
 
@@ -290,21 +272,21 @@ export const generateWASMModule = (expressions: Expression[]) => {
 	return module
 }
 
-export default generateWASMModule
+export default generateWasmModule
 
 export const evaluateType = (expression: Expression) => {
 	switch (expression.kind) {
-		case ExpressionKind.SignedIntegerType: {
+		case ExpressionTag.SignedIntegerType: {
 			assert(expression.bits == 32, HERE)
 
 			return binaryen.i32
 		}
 
-		case ExpressionKind.Null:
+		case ExpressionTag.Null:
 			return binaryen.none
 
 		default:
-			throw Error(`${HERE} ${ExpressionKind[expression.kind]}`)
+			throw Error(`${HERE} ${ExpressionTag[expression.kind]}`)
 	}
 }
 

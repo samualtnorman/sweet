@@ -1,12 +1,12 @@
 import { isRecord } from "@samual/lib/isRecord"
-import { Expression, ExpressionKind } from "./parse"
+import { type Expression, ExpressionTag } from "./parse"
 
 export const printExpression = (node: Record<string, unknown>, indentString = `\t`, indentLevel = 0): string => {
 	const { kind, index, line, column, ...nodeProperties } = node
 	let o = ``
 
 	if (typeof kind == `number`) {
-		o += `${ExpressionKind[kind]}\n`
+		o += `${ExpressionTag[kind]}\n`
 		indentLevel++
 	}
 

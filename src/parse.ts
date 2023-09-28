@@ -1,14 +1,14 @@
 import { assert } from "@samual/lib/assert"
-import { error, getIntegerLength, Location } from "./shared"
-import { DataToken, DataTokenKind, NonDataToken, printToken, Token, TokenKind } from "./tokenise"
+import { error, getIntegerLength, type Location } from "./shared"
+import { printToken, TokenTag, type DataToken, type DataTokenKind, type NonDataToken, type Token } from "./tokenise"
 
 const DEBUG = false as boolean
 
-export enum ExpressionKind {
+export enum ExpressionTag {
 	Add = 1, Any, Array, As, BiggerThan, BiggerThanEquals, BitwiseAnd, BitwiseAndAssign, BitwiseNot, BitwiseOr,
 	BitwiseOrAssign, Boolean, Call, Concatenate, ConcatenateAssign, DeclaredImport, Decrement, Destructure, Divide, Do,
-	Enum, ErrorEnum, Equals, False, Float16Literal, Float16Type, Float32Literal, Float32Type, Float64Literal,
-	Float64Type, Float128Literal, Float128Type, Function, FunctionType, GetMember, GlobalError, Identifier, If, Import,
+	Enum, ErrorEnum, ErrorTag, Equals, False, Float16Literal, Float16Type, Float32Literal, Float32Type, Float64Literal,
+	Float64Type, Float128Literal, Float128Type, Function, FunctionType, GetMember, Identifier, If, Import,
 	Increment, Is, Let, LogicalAnd, LogicalAndAssign, LogicalNot, LogicalOr, LogicalOrAssign, Loop, Minus, MinusPrefix,
 	Modulo, NormalAssign, NotEquals, Null, NullishCoalesce, NullishCoalesceAssign, Object, ObjectType, Power, Range,
 	Return, ShiftLeft, ShiftLeftAssign, ShiftRight, ShiftRightAssign, SignedIntegerLiteral, SignedIntegerType,
@@ -17,54 +17,54 @@ export enum ExpressionKind {
 	WrappingShiftLeft, WrappingShiftLeftAssign, WrappingTimes, Xor, XorAssign
 }
 
-export const BinaryOperatorTokensToExpressionKinds: { [Key in TokenKind]?: Expression.BinaryOperation[`kind`] } = {
-	[TokenKind.Add]: ExpressionKind.Add,
-	[TokenKind.Minus]: ExpressionKind.Minus,
-	[TokenKind.Divide]: ExpressionKind.Divide,
-	[TokenKind.Times]: ExpressionKind.Times,
-	[TokenKind.Modulo]: ExpressionKind.Modulo,
-	[TokenKind.Power]: ExpressionKind.Power,
-	[TokenKind.WrappingAdd]: ExpressionKind.WrappingAdd,
-	[TokenKind.WrappingMinus]: ExpressionKind.WrappingMinus,
-	[TokenKind.WrappingDivide]: ExpressionKind.WrappingDivide,
-	[TokenKind.WrappingTimes]: ExpressionKind.WrappingTimes,
-	[TokenKind.WrappingPower]: ExpressionKind.WrappingPower,
-	[TokenKind.Is]: ExpressionKind.Is,
-	[TokenKind.SmallerThan]: ExpressionKind.SmallerThan,
-	[TokenKind.BiggerThan]: ExpressionKind.BiggerThan,
-	[TokenKind.SmallerThanEquals]: ExpressionKind.SmallerThanEquals,
-	[TokenKind.BiggerThanEquals]: ExpressionKind.BiggerThanEquals,
-	[TokenKind.Equals]: ExpressionKind.Equals,
-	[TokenKind.NotEquals]: ExpressionKind.NotEquals,
-	[TokenKind.ShiftLeft]: ExpressionKind.ShiftLeft,
-	[TokenKind.ShiftRight]: ExpressionKind.ShiftRight,
-	[TokenKind.WrappingShiftLeft]: ExpressionKind.WrappingShiftLeft,
-	[TokenKind.BitwiseAnd]: ExpressionKind.BitwiseAnd,
-	[TokenKind.BitwiseOr]: ExpressionKind.BitwiseOr,
-	[TokenKind.Xor]: ExpressionKind.Xor,
-	[TokenKind.LogicalAnd]: ExpressionKind.LogicalAnd,
-	[TokenKind.And]: ExpressionKind.LogicalAnd,
-	[TokenKind.LogicalOr]: ExpressionKind.LogicalOr,
-	[TokenKind.Or]: ExpressionKind.LogicalOr,
-	[TokenKind.NullishCoalesce]: ExpressionKind.NullishCoalesce,
-	[TokenKind.Union]: ExpressionKind.Union,
-	[TokenKind.Concatenate]: ExpressionKind.Concatenate,
-	[TokenKind.To]: ExpressionKind.To,
-	[TokenKind.As]: ExpressionKind.As,
-	[TokenKind.DotDotDot]: ExpressionKind.Range
+export const BinaryOperatorTokensToExpressionTags: { [Key in TokenTag]?: Expression.BinaryOperation[`tag`] } = {
+	[TokenTag.Add]: ExpressionTag.Add,
+	[TokenTag.Minus]: ExpressionTag.Minus,
+	[TokenTag.Divide]: ExpressionTag.Divide,
+	[TokenTag.Times]: ExpressionTag.Times,
+	[TokenTag.Modulo]: ExpressionTag.Modulo,
+	[TokenTag.Power]: ExpressionTag.Power,
+	[TokenTag.WrappingAdd]: ExpressionTag.WrappingAdd,
+	[TokenTag.WrappingMinus]: ExpressionTag.WrappingMinus,
+	[TokenTag.WrappingDivide]: ExpressionTag.WrappingDivide,
+	[TokenTag.WrappingTimes]: ExpressionTag.WrappingTimes,
+	[TokenTag.WrappingPower]: ExpressionTag.WrappingPower,
+	[TokenTag.Is]: ExpressionTag.Is,
+	[TokenTag.SmallerThan]: ExpressionTag.SmallerThan,
+	[TokenTag.BiggerThan]: ExpressionTag.BiggerThan,
+	[TokenTag.SmallerThanEquals]: ExpressionTag.SmallerThanEquals,
+	[TokenTag.BiggerThanEquals]: ExpressionTag.BiggerThanEquals,
+	[TokenTag.Equals]: ExpressionTag.Equals,
+	[TokenTag.NotEquals]: ExpressionTag.NotEquals,
+	[TokenTag.ShiftLeft]: ExpressionTag.ShiftLeft,
+	[TokenTag.ShiftRight]: ExpressionTag.ShiftRight,
+	[TokenTag.WrappingShiftLeft]: ExpressionTag.WrappingShiftLeft,
+	[TokenTag.BitwiseAnd]: ExpressionTag.BitwiseAnd,
+	[TokenTag.BitwiseOr]: ExpressionTag.BitwiseOr,
+	[TokenTag.Xor]: ExpressionTag.Xor,
+	[TokenTag.LogicalAnd]: ExpressionTag.LogicalAnd,
+	[TokenTag.And]: ExpressionTag.LogicalAnd,
+	[TokenTag.LogicalOr]: ExpressionTag.LogicalOr,
+	[TokenTag.Or]: ExpressionTag.LogicalOr,
+	[TokenTag.NullishCoalesce]: ExpressionTag.NullishCoalesce,
+	[TokenTag.Union]: ExpressionTag.Union,
+	[TokenTag.Concatenate]: ExpressionTag.Concatenate,
+	[TokenTag.To]: ExpressionTag.To,
+	[TokenTag.As]: ExpressionTag.As,
+	[TokenTag.DotDotDot]: ExpressionTag.Range
 }
 
-export const TypeTokenKindsToTypeExpressionKinds: { [Key in TokenKind]?: ExpressionKind } = {
-	[TokenKind.UnsignedIntegerType]: ExpressionKind.UnsignedIntegerType,
-	[TokenKind.SignedIntegerType]: ExpressionKind.SignedIntegerType,
-	[TokenKind.Float16Type]: ExpressionKind.Float16Type,
-	[TokenKind.Float32Type]: ExpressionKind.Float32Type,
-	[TokenKind.Float64Type]: ExpressionKind.Float64Type,
-	[TokenKind.Float128Type]: ExpressionKind.Float128Type
+export const TypeTokenKindsToTypeExpressionKinds: { [Key in TokenTag]?: ExpressionTag } = {
+	[TokenTag.UnsignedIntegerType]: ExpressionTag.UnsignedIntegerType,
+	[TokenTag.SignedIntegerType]: ExpressionTag.SignedIntegerType,
+	[TokenTag.Float16Type]: ExpressionTag.Float16Type,
+	[TokenTag.Float32Type]: ExpressionTag.Float32Type,
+	[TokenTag.Float64Type]: ExpressionTag.Float64Type,
+	[TokenTag.Float128Type]: ExpressionTag.Float128Type
 }
 
 export function parse(tokens: Token[], fileName: string) {
-	return parseExpressions(tokens, 0, { cursor: tokens[0]?.kind == TokenKind.Newline ? 1 : 0 }, fileName)
+	return parseExpressions(tokens, 0, { cursor: tokens[0]?.kind == TokenTag.Newline ? 1 : 0 }, fileName)
 }
 
 export default parse
@@ -87,8 +87,8 @@ export function* parseExpressions(
 
 		const newline = tokens[state.cursor]
 
-		if (newline?.kind != TokenKind.Newline)
-			errorUnexpectedToken(newline, [ TokenKind.Newline ])
+		if (newline?.kind != TokenTag.Newline)
+			errorUnexpectedToken(newline, [ TokenTag.Newline ])
 
 		if (newline.data.length < indentLevel)
 			return
@@ -108,7 +108,7 @@ export function* parseExpressions(
 		errorUnexpectedToken(tokens[state.cursor])
 	}
 
-	function errorUnexpectedToken(token: Token | undefined, expectedKinds?: TokenKind[]): never {
+	function errorUnexpectedToken(token: Token | undefined, expectedKinds?: TokenTag[]): never {
 		if (expectedKinds) {
 			assert(expectedKinds.length, `expectedKinds must not be empty`)
 
@@ -142,7 +142,7 @@ export function* parseExpressions(
 		const location: Location = { index: firstToken.index, line: firstToken.line, column: firstToken.column }
 
 		switch (firstToken.kind) {
-			case TokenKind.While: {
+			case TokenTag.While: {
 				state.cursor++
 
 				const condition = parseExpression(false)
@@ -151,7 +151,7 @@ export function* parseExpressions(
 				expectNewline()
 
 				expression = {
-					kind: ExpressionKind.While,
+					tag: ExpressionTag.While,
 					condition,
 					body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
 					...location
@@ -160,13 +160,13 @@ export function* parseExpressions(
 				indentLevel--
 			} break
 
-			case TokenKind.If: {
+			case TokenTag.If: {
 				state.cursor++
 
 				const condition = parseExpression(false)
 				let truthyBranch: Expression
 
-				if (nextTokenIs(TokenKind.Then)) {
+				if (nextTokenIs(TokenTag.Then)) {
 					state.cursor++
 					truthyBranch = parseExpression(false)
 				} else {
@@ -174,7 +174,7 @@ export function* parseExpressions(
 					expectNewline()
 
 					truthyBranch = {
-						kind: ExpressionKind.Do,
+						tag: ExpressionTag.Do,
 						body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
 						...location
 					}
@@ -182,20 +182,20 @@ export function* parseExpressions(
 					indentLevel--
 				}
 
-				if (nextTokenIs(TokenKind.Newline, TokenKind.Else))
+				if (nextTokenIs(TokenTag.Newline, TokenTag.Else))
 					expectNewline()
 
 				let falseyBranch: Expression | undefined
 
-				if (nextTokenIs(TokenKind.Else)) {
+				if (nextTokenIs(TokenTag.Else)) {
 					state.cursor++
 
-					if (nextTokenIs(TokenKind.Newline)) {
+					if (nextTokenIs(TokenTag.Newline)) {
 						indentLevel++
 						expectNewline()
 
 						falseyBranch = {
-							kind: ExpressionKind.Do,
+							tag: ExpressionTag.Do,
 							body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
 							...location
 						}
@@ -205,16 +205,16 @@ export function* parseExpressions(
 						falseyBranch = parseExpression(false)
 				}
 
-				expression = { kind: ExpressionKind.If, condition, truthyBranch, falseyBranch, ...location }
+				expression = { tag: ExpressionTag.If, condition, truthyBranch, falseyBranch, ...location }
 			} break
 
-			case TokenKind.Do: {
+			case TokenTag.Do: {
 				state.cursor++
 				indentLevel++
 				expectNewline()
 
 				expression = {
-					kind: ExpressionKind.Do,
+					tag: ExpressionTag.Do,
 					body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
 					...location
 				}
@@ -222,53 +222,53 @@ export function* parseExpressions(
 				indentLevel--
 			} break
 
-			case TokenKind.OpenBracket: {
+			case TokenTag.OpenBracket: {
 				state.cursor++
 				expression = parseExpression(false)
-				expectToken(TokenKind.CloseBracket)
+				expectToken(TokenTag.CloseBracket)
 			} break
 
-			case TokenKind.Null: {
+			case TokenTag.Null: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Null, ...location }
+				expression = { tag: ExpressionTag.Null, ...location }
 			} break
 
-			case TokenKind.Void: {
-				state.cursor++
-
-				expression =
-					{ kind: ExpressionKind.Void, expression: parseExpression(noParseAssign), ...location }
-			} break
-
-			case TokenKind.Return: {
+			case TokenTag.Void: {
 				state.cursor++
 
 				expression =
-					{ kind: ExpressionKind.Return, expression: maybeParseExpression(noParseAssign), ...location }
+					{ tag: ExpressionTag.Void, expression: parseExpression(noParseAssign), ...location }
 			} break
 
-			case TokenKind.Let: {
+			case TokenTag.Return: {
 				state.cursor++
 
-				const binding = parseIdentifier(expectToken(TokenKind.Identifier))
+				expression =
+					{ tag: ExpressionTag.Return, expression: maybeParseExpression(noParseAssign), ...location }
+			} break
+
+			case TokenTag.Let: {
+				state.cursor++
+
+				const binding = parseIdentifier(expectToken(TokenTag.Identifier))
 				let type
 
-				if (nextTokenIs(TokenKind.Colon)) {
+				if (nextTokenIs(TokenTag.Colon)) {
 					state.cursor++
 					type = parseExpression(true)
 				}
 
 				let initialValue
 
-				if (nextTokenIs(TokenKind.Assign)) {
+				if (nextTokenIs(TokenTag.Assign)) {
 					state.cursor++
 					initialValue = parseExpression(noParseAssign)
 				}
 
-				expression = { kind: ExpressionKind.Let, binding, type, initialValue, ...location }
+				expression = { tag: ExpressionTag.Let, binding, type, initialValue, ...location }
 			} break
 
-			case TokenKind.Identifier: {
+			case TokenTag.Identifier: {
 				state.cursor++
 				expression = parseIdentifier(firstToken)
 
@@ -277,89 +277,89 @@ export function* parseExpressions(
 				if (secondToken) {
 					// eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
 					switch (secondToken.kind) {
-						case TokenKind.Assign: {
+						case TokenTag.Assign: {
 							if (noParseAssign)
 								return expression
 
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.NormalAssign,
+								tag: ExpressionTag.NormalAssign,
 								binding: expression,
 								value: parseExpression(noParseAssign),
 								...location
 							}
 						} break
 
-						case TokenKind.Increment: {
+						case TokenTag.Increment: {
 							state.cursor++
-							expression = { kind: ExpressionKind.Increment, binding: expression, ...location }
+							expression = { tag: ExpressionTag.Increment, binding: expression, ...location }
 						} break
 
-						case TokenKind.Decrement: {
+						case TokenTag.Decrement: {
 							state.cursor++
-							expression = { kind: ExpressionKind.Decrement, binding: expression, ...location }
+							expression = { tag: ExpressionTag.Decrement, binding: expression, ...location }
 						} break
 
-						case TokenKind.WrappingIncrement: {
+						case TokenTag.WrappingIncrement: {
 							state.cursor++
 
 							expression =
-								{ kind: ExpressionKind.WrappingIncrement, binding: expression, ...location }
+								{ tag: ExpressionTag.WrappingIncrement, binding: expression, ...location }
 						} break
 
-						case TokenKind.WrappingDecrement: {
+						case TokenTag.WrappingDecrement: {
 							state.cursor++
 
 							expression =
-								{ kind: ExpressionKind.WrappingDecrement, binding: expression, ...location }
+								{ tag: ExpressionTag.WrappingDecrement, binding: expression, ...location }
 						}
 					}
 				}
 			} break
 
-			case TokenKind.Number: {
+			case TokenTag.Number: {
 				state.cursor++
 
 				const type = tokens[state.cursor]
 
 				if (firstToken.data.includes(`.`)) {
 					switch (type?.kind) {
-						case TokenKind.Float16Type: {
+						case TokenTag.Float16Type: {
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.Float16Literal,
+								tag: ExpressionTag.Float16Literal,
 								value: Number(firstToken.data),
 								...location
 							}
 						} break
 
-						case TokenKind.Float32Type: {
+						case TokenTag.Float32Type: {
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.Float32Literal,
+								tag: ExpressionTag.Float32Literal,
 								value: Number(firstToken.data),
 								...location
 							}
 						} break
 
-						case TokenKind.Float64Type: {
+						case TokenTag.Float64Type: {
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.Float64Literal,
+								tag: ExpressionTag.Float64Literal,
 								value: Number(firstToken.data),
 								...location
 							}
 						} break
 
-						case TokenKind.Float128Type: {
+						case TokenTag.Float128Type: {
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.Float128Literal,
+								tag: ExpressionTag.Float128Literal,
 								value: Number(firstToken.data),
 								...location
 							}
@@ -371,7 +371,7 @@ export function* parseExpressions(
 							expression = {
 								// TODO this should probably be the native bit one e.g. 32 bit on 32 bit systems
 								// instead of giving parse() the bit size, a place holder ExpressionKind should be set
-								kind: ExpressionKind.Float64Literal,
+								tag: ExpressionTag.Float64Literal,
 								value: Number(firstToken.data),
 								...location
 							}
@@ -381,63 +381,63 @@ export function* parseExpressions(
 					// TODO complain when integer is too large for bits
 
 					switch (type?.kind) {
-						case TokenKind.UnsignedIntegerType: {
+						case TokenTag.UnsignedIntegerType: {
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.UnsignedIntegerLiteral,
+								tag: ExpressionTag.UnsignedIntegerLiteral,
 								value: BigInt(firstToken.data),
 								bits: Number(type.data),
 								...location
 							}
 						} break
 
-						case TokenKind.SignedIntegerType: {
+						case TokenTag.SignedIntegerType: {
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.SignedIntegerLiteral,
+								tag: ExpressionTag.SignedIntegerLiteral,
 								value: BigInt(firstToken.data),
 								bits: Number(type.data),
 								...location
 							}
 						} break
 
-						case TokenKind.Float16Type: {
+						case TokenTag.Float16Type: {
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.Float16Literal,
+								tag: ExpressionTag.Float16Literal,
 								value: Number(firstToken.data),
 								...location
 							}
 						} break
 
-						case TokenKind.Float32Type: {
+						case TokenTag.Float32Type: {
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.Float32Literal,
+								tag: ExpressionTag.Float32Literal,
 								value: Number(firstToken.data),
 								...location
 							}
 						} break
 
-						case TokenKind.Float64Type: {
+						case TokenTag.Float64Type: {
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.Float64Literal,
+								tag: ExpressionTag.Float64Literal,
 								value: Number(firstToken.data),
 								...location
 							}
 						} break
 
-						case TokenKind.Float128Type: {
+						case TokenTag.Float128Type: {
 							state.cursor++
 
 							expression = {
-								kind: ExpressionKind.Float128Literal,
+								tag: ExpressionTag.Float128Literal,
 								value: Number(firstToken.data),
 								...location
 							}
@@ -447,7 +447,7 @@ export function* parseExpressions(
 							const value = BigInt(firstToken.data)
 
 							expression = {
-								kind: ExpressionKind.UnsignedIntegerLiteral,
+								tag: ExpressionTag.UnsignedIntegerLiteral,
 								value,
 								bits: getIntegerLength(value),
 								...location
@@ -457,52 +457,52 @@ export function* parseExpressions(
 				}
 			} break
 
-			case TokenKind.Float16Type: {
+			case TokenTag.Float16Type: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Float16Type, ...location }
+				expression = { tag: ExpressionTag.Float16Type, ...location }
 			} break
 
-			case TokenKind.Float32Type: {
+			case TokenTag.Float32Type: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Float32Type, ...location }
+				expression = { tag: ExpressionTag.Float32Type, ...location }
 			} break
 
-			case TokenKind.Float64Type: {
+			case TokenTag.Float64Type: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Float64Type, ...location }
+				expression = { tag: ExpressionTag.Float64Type, ...location }
 			} break
 
-			case TokenKind.Float128Type: {
+			case TokenTag.Float128Type: {
 				state.cursor++
-				expression = { kind: ExpressionKind.Float128Type, ...location }
+				expression = { tag: ExpressionTag.Float128Type, ...location }
 			} break
 
-			case TokenKind.UnsignedIntegerType: {
+			case TokenTag.UnsignedIntegerType: {
 				state.cursor++
 
 				expression = {
-					kind: ExpressionKind.UnsignedIntegerType,
+					tag: ExpressionTag.UnsignedIntegerType,
 					bits: firstToken.data ? Number(firstToken.data) : undefined,
 					...location
 				}
 			} break
 
-			case TokenKind.SignedIntegerType: {
+			case TokenTag.SignedIntegerType: {
 				state.cursor++
 
 				expression = {
-					kind: ExpressionKind.SignedIntegerType,
+					tag: ExpressionTag.SignedIntegerType,
 					bits: firstToken.data ? Number(firstToken.data) : undefined,
 					...location
 				}
 			} break
 
-			case TokenKind.Enum: {
+			case TokenTag.Enum: {
 				state.cursor++
 
 				expression = {
-					kind: ExpressionKind.Enum,
-					name: expectToken(TokenKind.Identifier).data,
+					tag: ExpressionTag.Enum,
+					name: expectToken(TokenTag.Identifier).data,
 					members: [],
 					...location
 				}
@@ -511,10 +511,10 @@ export function* parseExpressions(
 				expectNewline()
 
 				while (true) {
-					const name = expectToken(TokenKind.Identifier).data
+					const name = expectToken(TokenTag.Identifier).data
 					let type
 
-					if (nextTokenIs(TokenKind.Colon)) {
+					if (nextTokenIs(TokenTag.Colon)) {
 						state.cursor++
 						type = parseExpression(noParseAssign)
 					}
@@ -523,8 +523,8 @@ export function* parseExpressions(
 
 					const newline = tokens[state.cursor]
 
-					if (newline?.kind != TokenKind.Newline)
-						errorUnexpectedToken(newline, [ TokenKind.Newline ])
+					if (newline?.kind != TokenTag.Newline)
+						errorUnexpectedToken(newline, [ TokenTag.Newline ])
 
 					if (newline.data.length < indentLevel)
 						break
@@ -538,25 +538,25 @@ export function* parseExpressions(
 				indentLevel--
 			} break
 
-			case TokenKind.Function: {
+			case TokenTag.Function: {
 				state.cursor++
 
-				const name = expectToken(TokenKind.Identifier).data
+				const name = expectToken(TokenTag.Identifier).data
 
-				const parameter = nextTokenIs(TokenKind.OpenSquiglyBracket) ?
-					parseObject(expectToken(TokenKind.OpenSquiglyBracket)) :
-					parseIdentifier(expectToken(TokenKind.Identifier))
+				const parameter = nextTokenIs(TokenTag.OpenSquiglyBracket)
+					? parseObject(expectToken(TokenTag.OpenSquiglyBracket))
+					: parseIdentifier(expectToken(TokenTag.Identifier))
 
 				let parameterType
 
-				if (nextTokenIs(TokenKind.Colon)) {
+				if (nextTokenIs(TokenTag.Colon)) {
 					state.cursor++
 					parameterType = parseExpression(noParseAssign)
 				}
 
 				let returnType
 
-				if (nextTokenIs(TokenKind.Arrow)) {
+				if (nextTokenIs(TokenTag.Arrow)) {
 					state.cursor++
 					returnType = parseExpression(noParseAssign)
 				}
@@ -565,7 +565,7 @@ export function* parseExpressions(
 				expectNewline()
 
 				expression = {
-					kind: ExpressionKind.Function,
+					tag: ExpressionTag.Function,
 					name,
 					parameter,
 					parameterType,
@@ -577,18 +577,22 @@ export function* parseExpressions(
 				indentLevel--
 			} break
 
-			case TokenKind.OpenSquiglyBracket: {
+			case TokenTag.OpenSquiglyBracket: {
 				state.cursor++
 				expression = parseObject(firstToken)
 			} break
 
-			case TokenKind.ErrorKeyword: {
+			case TokenTag.ErrorKeyword: {
 				state.cursor++
 
-				if (nextTokenIs(TokenKind.Identifier)) {
+				const identifier = expectToken(TokenTag.Identifier)
+
+
+
+				if (nextTokenIs(TokenTag.Identifier)) {
 					expression = {
-						kind: ExpressionKind.ErrorEnum,
-						name: expectToken(TokenKind.Identifier).data,
+						tag: ExpressionTag.ErrorEnum,
+						name: expectToken(TokenTag.Identifier).data,
 						members: [],
 						...location
 					}
@@ -597,10 +601,10 @@ export function* parseExpressions(
 					expectNewline()
 
 					while (true) {
-						const name = expectToken(TokenKind.Identifier).data
+						const name = expectToken(TokenTag.Identifier).data
 						let type
 
-						if (nextTokenIs(TokenKind.Colon)) {
+						if (nextTokenIs(TokenTag.Colon)) {
 							state.cursor++
 							type = parseExpression(noParseAssign)
 						}
@@ -609,8 +613,8 @@ export function* parseExpressions(
 
 						const newline = tokens[state.cursor]
 
-						if (newline?.kind != TokenKind.Newline)
-							errorUnexpectedToken(newline, [ TokenKind.Newline ])
+						if (newline?.kind != TokenTag.Newline)
+							errorUnexpectedToken(newline, [ TokenTag.Newline ])
 
 						if (newline.data.length < indentLevel)
 							break
@@ -622,24 +626,16 @@ export function* parseExpressions(
 					}
 
 					indentLevel--
-				} else {
-					expectToken(TokenKind.Dot)
-
-					return {
-						kind: ExpressionKind.GlobalError,
-						name: expectToken(TokenKind.Identifier).data,
-						...location
-					}
 				}
 			} break
 
-			case TokenKind.Loop: {
+			case TokenTag.Loop: {
 				state.cursor++
 				indentLevel++
 				expectNewline()
 
 				expression = {
-					kind: ExpressionKind.Loop,
+					tag: ExpressionTag.Loop,
 					body: [ ...parseExpressions(tokens, indentLevel, state, fileName) ],
 					...location
 				}
@@ -647,50 +643,50 @@ export function* parseExpressions(
 				indentLevel--
 			} break
 
-			case TokenKind.Minus: {
+			case TokenTag.Minus: {
 				state.cursor++
 
-				if (nextTokenIs(TokenKind.Number)) {
-					const number = expectToken(TokenKind.Number)
+				if (nextTokenIs(TokenTag.Number)) {
+					const number = expectToken(TokenTag.Number)
 					const type = tokens[state.cursor]
 
 					if (number.data.includes(`.`)) {
 						switch (type?.kind) {
-							case TokenKind.Float16Type: {
+							case TokenTag.Float16Type: {
 								state.cursor++
 
 								expression = {
-									kind: ExpressionKind.Float16Literal,
+									tag: ExpressionTag.Float16Literal,
 									value: -Number(number.data),
 									...location
 								}
 							} break
 
-							case TokenKind.Float32Type: {
+							case TokenTag.Float32Type: {
 								state.cursor++
 
 								expression = {
-									kind: ExpressionKind.Float32Literal,
+									tag: ExpressionTag.Float32Literal,
 									value: -Number(number.data),
 									...location
 								}
 							} break
 
-							case TokenKind.Float64Type: {
+							case TokenTag.Float64Type: {
 								state.cursor++
 
 								expression = {
-									kind: ExpressionKind.Float64Literal,
+									tag: ExpressionTag.Float64Literal,
 									value: -Number(number.data),
 									...location
 								}
 							} break
 
-							case TokenKind.Float128Type: {
+							case TokenTag.Float128Type: {
 								state.cursor++
 
 								expression = {
-									kind: ExpressionKind.Float128Literal,
+									tag: ExpressionTag.Float128Literal,
 									value: -Number(number.data),
 									...location
 								}
@@ -702,7 +698,7 @@ export function* parseExpressions(
 								expression = {
 									// TODO this should probably be the native bit one e.g. 32 bit on 32 bit systems
 									// instead of giving parse() the bit size, a place holder ExpressionKind should be set
-									kind: ExpressionKind.Float64Literal,
+									tag: ExpressionTag.Float64Literal,
 									value: -Number(number.data),
 									...location
 								}
@@ -712,55 +708,55 @@ export function* parseExpressions(
 						// TODO complain when integer is too large for bits
 
 						switch (type?.kind) {
-							case TokenKind.UnsignedIntegerType:
+							case TokenTag.UnsignedIntegerType:
 								error(`u${type.data} does not support negative integers`, fileName, type)
 
-							case TokenKind.SignedIntegerType: {
+							case TokenTag.SignedIntegerType: {
 								state.cursor++
 
 								expression = {
-									kind: ExpressionKind.SignedIntegerLiteral,
+									tag: ExpressionTag.SignedIntegerLiteral,
 									value: -BigInt(number.data),
 									bits: Number(type.data),
 									...location
 								}
 							} break
 
-							case TokenKind.Float16Type: {
+							case TokenTag.Float16Type: {
 								state.cursor++
 
 								expression = {
-									kind: ExpressionKind.Float16Literal,
+									tag: ExpressionTag.Float16Literal,
 									value: -Number(number.data),
 									...location
 								}
 							} break
 
-							case TokenKind.Float32Type: {
+							case TokenTag.Float32Type: {
 								state.cursor++
 
 								expression = {
-									kind: ExpressionKind.Float32Literal,
+									tag: ExpressionTag.Float32Literal,
 									value: -Number(number.data),
 									...location
 								}
 							} break
 
-							case TokenKind.Float64Type: {
+							case TokenTag.Float64Type: {
 								state.cursor++
 
 								expression = {
-									kind: ExpressionKind.Float64Literal,
+									tag: ExpressionTag.Float64Literal,
 									value: -Number(number.data),
 									...location
 								}
 							} break
 
-							case TokenKind.Float128Type: {
+							case TokenTag.Float128Type: {
 								state.cursor++
 
 								expression = {
-									kind: ExpressionKind.Float128Literal,
+									tag: ExpressionTag.Float128Literal,
 									value: -Number(number.data),
 									...location
 								}
@@ -770,7 +766,7 @@ export function* parseExpressions(
 								const value = -BigInt(number.data)
 
 								expression = {
-									kind: ExpressionKind.SignedIntegerLiteral,
+									tag: ExpressionTag.SignedIntegerLiteral,
 									value,
 									bits: getIntegerLength(value) + 1,
 									...location
@@ -780,38 +776,38 @@ export function* parseExpressions(
 					}
 				} else {
 					expression = {
-						kind: ExpressionKind.MinusPrefix,
+						tag: ExpressionTag.MinusPrefix,
 						expression: parseExpression(noParseAssign),
 						...location
 					}
 				}
 			} break
 
-			case TokenKind.Declare: {
+			case TokenTag.Declare: {
 				state.cursor++
-				expectToken(TokenKind.Import)
+				expectToken(TokenTag.Import)
 
 				expression = {
-					kind: ExpressionKind.DeclaredImport,
-					module: expectToken(TokenKind.String).data,
+					tag: ExpressionTag.DeclaredImport,
+					module: expectToken(TokenTag.String).data,
 					members: [],
 					...location
 				}
 
-				expectToken(TokenKind.OpenSquiglyBracket)
+				expectToken(TokenTag.OpenSquiglyBracket)
 				indentLevel++
 
 				while (true) {
-					const name = expectToken(TokenKind.Identifier).data
-					const as = maybeEatOneOf(TokenKind.As) ? expectToken(TokenKind.Identifier).data : undefined
+					const name = expectToken(TokenTag.Identifier).data
+					const as = maybeEatOneOf(TokenTag.As) ? expectToken(TokenTag.Identifier).data : undefined
 
-					expectToken(TokenKind.Colon)
+					expectToken(TokenTag.Colon)
 					expression.members.push({ name, as: as ?? name, type: parseExpression(true) })
 
-					if (maybeEatOneOf(TokenKind.CloseSquiglyBracket))
+					if (maybeEatOneOf(TokenTag.CloseSquiglyBracket))
 						break
 
-					eatOneOf(TokenKind.Newline, TokenKind.Comma)
+					eatOneOf(TokenTag.Newline, TokenTag.Comma)
 				}
 			} break
 
@@ -820,66 +816,66 @@ export function* parseExpressions(
 		}
 
 		while (state.cursor < tokens.length) {
-			if (nextTokenIs(TokenKind.Newline))
+			if (nextTokenIs(TokenTag.Newline))
 				return expression
 
-			const kind = BinaryOperatorTokensToExpressionKinds[tokens[state.cursor]!.kind]
+			const kind = BinaryOperatorTokensToExpressionTags[tokens[state.cursor]!.kind]
 
 			if (!kind) {
 				const argument = maybeParseExpression(noParseAssign)
 
 				if (argument)
-					return { kind: ExpressionKind.Call, called: expression, argument, ...location }
+					return { tag: ExpressionTag.Call, called: expression, argument, ...location }
 
 				return expression
 			}
 
 			state.cursor++
-			expression = { kind, left: expression, right: parseExpression(noParseAssign), ...location }
+			expression = { tag: kind, left: expression, right: parseExpression(noParseAssign), ...location }
 		}
 
 		return expression
 
 		function parseObject(firstToken: NonDataToken) {
-			const object: Expression.Object = {
-				kind: ExpressionKind.Object,
+			const object: Expression.Object & Location = {
+				tag: ExpressionTag.Object,
 				entries: [],
 				index: firstToken.index,
 				line: firstToken.line,
 				column: firstToken.column
 			}
 
-			if (nextTokenIs(TokenKind.CloseSquiglyBracket)) {
+			if (nextTokenIs(TokenTag.CloseSquiglyBracket)) {
 				state.cursor++
 
 				return object
 			}
 
 			while (true) {
-				const name = expectToken(TokenKind.Identifier).data
+				const name = expectToken(TokenTag.Identifier).data
 				let type
 
-				if (nextTokenIs(TokenKind.Colon)) {
+				if (nextTokenIs(TokenTag.Colon)) {
 					state.cursor++
 					type = parseExpression(true)
 				}
 
 				let value
 
-				if (nextTokenIs(TokenKind.Assign)) {
+				if (nextTokenIs(TokenTag.Assign)) {
 					state.cursor++
 					value = parseExpression(noParseAssign)
 				}
 
 				object.entries.push({ name, type, value })
 
-				if (nextTokenIs(TokenKind.CloseSquiglyBracket)) {
+				if (nextTokenIs(TokenTag.CloseSquiglyBracket)) {
 					state.cursor++
 
 					break
 				}
 
-				expectToken(TokenKind.Comma)
+				expectToken(TokenTag.Comma)
 			}
 
 			return object
@@ -887,13 +883,13 @@ export function* parseExpressions(
 	}
 
 	function expectNewline() {
-		const newline = expectToken(TokenKind.Newline)
+		const newline = expectToken(TokenTag.Newline)
 
 		if (newline.data.length != indentLevel)
 			errorWrongIndentLevel(newline, indentLevel, tokens[state.cursor])
 	}
 
-	function nextTokenIs(...kinds: TokenKind[]): boolean {
+	function nextTokenIs(...kinds: TokenTag[]): boolean {
 		if (tokens.length - state.cursor < kinds.length)
 			return false
 
@@ -903,14 +899,14 @@ export function* parseExpressions(
 			if (token.kind != kind)
 				return false
 
-			if (token.kind == TokenKind.Newline && token.data.length != indentLevel)
+			if (token.kind == TokenTag.Newline && token.data.length != indentLevel)
 				errorWrongIndentLevel(token, indentLevel, tokens[state.cursor])
 		}
 
 		return true
 	}
 
-	function expectToken<K extends TokenKind>(expectedKind: K): K extends DataTokenKind ? DataToken : NonDataToken {
+	function expectToken<K extends TokenTag>(expectedKind: K): K extends DataTokenKind ? DataToken : NonDataToken {
 		const token = tokens[state.cursor]
 
 		if (token?.kind != expectedKind)
@@ -921,7 +917,7 @@ export function* parseExpressions(
 		return token as any
 	}
 
-	function maybeEatOneOf(...kinds: TokenKind[]): boolean {
+	function maybeEatOneOf(...kinds: TokenTag[]): boolean {
 		for (const kind of kinds) {
 			if (nextTokenIs(kind)) {
 				state.cursor++
@@ -933,19 +929,19 @@ export function* parseExpressions(
 		return false
 	}
 
-	function eatOneOf(...kinds: TokenKind[]): void {
+	function eatOneOf(...kinds: TokenTag[]): void {
 		if (!maybeEatOneOf(...kinds))
 			errorUnexpectedToken(tokens[state.cursor], kinds)
 	}
 }
 
-export function getExpectedTokenKindNames(expectedKinds: TokenKind[]) {
-	return expectedKinds.map(expectedType => TokenKind[expectedType]).join(`, `)
+export function getExpectedTokenKindNames(expectedKinds: TokenTag[]) {
+	return expectedKinds.map(expectedType => TokenTag[expectedType]).join(`, `)
 }
 
-export function parseIdentifier(identifier: DataToken): Expression.Identifier {
+export function parseIdentifier(identifier: DataToken): Expression.Identifier & Location {
 	return {
-		kind: ExpressionKind.Identifier,
+		tag: ExpressionTag.Identifier,
 		name: identifier.data,
 		index: identifier.index,
 		line: identifier.line,
@@ -953,72 +949,73 @@ export function parseIdentifier(identifier: DataToken): Expression.Identifier {
 	}
 }
 
-export type Expression = Expression.BinaryOperation | Expression.Assignment | Expression.Rement |
-	Expression.KeywordPrimitive | Expression.Array | Expression.BitwiseNot | Expression.Call |
-	Expression.DeclaredImport | Expression.Destructure | Expression.Do | Expression.Enum | Expression.ErrorEnum |
-	Expression.Float16Literal | Expression.Float32Literal | Expression.Float64Literal | Expression.Float128Literal |
-	Expression.Function | Expression.FunctionType | Expression.GetMember | Expression.GlobalError |
-	Expression.Identifier | Expression.If | Expression.Import | Expression.Let | Expression.LogicalNot |
-	Expression.Loop | Expression.MinusPrefix | Expression.Object | Expression.Return |
+export type Expression = (
+	Expression.BinaryOperation | Expression.Assignment | Expression.Rement | Expression.KeywordPrimitive |
+	Expression.Array | Expression.BitwiseNot | Expression.Call | Expression.DeclaredImport | Expression.Destructure |
+	Expression.Do | Expression.Enum | Expression.ErrorEnum | Expression.Float16Literal | Expression.Float32Literal |
+	Expression.Float64Literal | Expression.Float128Literal | Expression.Function | Expression.FunctionType |
+	Expression.GetMember | Expression.Identifier | Expression.If | Expression.Import | Expression.Let |
+	Expression.LogicalNot | Expression.Loop | Expression.MinusPrefix | Expression.Object | Expression.Return |
 	Expression.SignedIntegerLiteral | Expression.SignedIntegerType | Expression.String |
 	Expression.UnsignedIntegerLiteral | Expression.UnsignedIntegerType | Expression.Void | Expression.While
+) & Location
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Expression {
-	export type BinaryOperation = Location & {
-		kind: ExpressionKind.Add | ExpressionKind.As | ExpressionKind.BiggerThan | ExpressionKind.BiggerThanEquals |
-			ExpressionKind.BitwiseAnd | ExpressionKind.BitwiseOr | ExpressionKind.Concatenate | ExpressionKind.Divide |
-			ExpressionKind.Equals | ExpressionKind.Is | ExpressionKind.LogicalAnd | ExpressionKind.LogicalOr |
-			ExpressionKind.Minus | ExpressionKind.Modulo | ExpressionKind.NotEquals | ExpressionKind.NullishCoalesce |
-			ExpressionKind.Power | ExpressionKind.Range | ExpressionKind.ShiftLeft | ExpressionKind.ShiftRight |
-			ExpressionKind.SmallerThan | ExpressionKind.SmallerThanEquals | ExpressionKind.Times | ExpressionKind.To |
-			ExpressionKind.Union | ExpressionKind.WrappingAdd | ExpressionKind.WrappingDivide |
-			ExpressionKind.WrappingMinus | ExpressionKind.WrappingPower | ExpressionKind.WrappingShiftLeft |
-			ExpressionKind.WrappingTimes | ExpressionKind.Xor
+	export type BinaryOperation = {
+		tag: ExpressionTag.Add | ExpressionTag.As | ExpressionTag.BiggerThan | ExpressionTag.BiggerThanEquals |
+			ExpressionTag.BitwiseAnd | ExpressionTag.BitwiseOr | ExpressionTag.Concatenate | ExpressionTag.Divide |
+			ExpressionTag.Equals | ExpressionTag.Is | ExpressionTag.LogicalAnd | ExpressionTag.LogicalOr |
+			ExpressionTag.Minus | ExpressionTag.Modulo | ExpressionTag.NotEquals | ExpressionTag.NullishCoalesce |
+			ExpressionTag.Power | ExpressionTag.Range | ExpressionTag.ShiftLeft | ExpressionTag.ShiftRight |
+			ExpressionTag.SmallerThan | ExpressionTag.SmallerThanEquals | ExpressionTag.Times | ExpressionTag.To |
+			ExpressionTag.Union | ExpressionTag.WrappingAdd | ExpressionTag.WrappingDivide |
+			ExpressionTag.WrappingMinus | ExpressionTag.WrappingPower | ExpressionTag.WrappingShiftLeft |
+			ExpressionTag.WrappingTimes | ExpressionTag.Xor
 		left: Expression
 		right: Expression
 	}
 
-	export type Assignment = Location & {
-		kind: ExpressionKind.BitwiseAndAssign | ExpressionKind.BitwiseOrAssign | ExpressionKind.ConcatenateAssign |
-			ExpressionKind.LogicalAndAssign | ExpressionKind.LogicalOrAssign | ExpressionKind.NormalAssign |
-			ExpressionKind.NullishCoalesceAssign | ExpressionKind.ShiftLeftAssign |
-			ExpressionKind.ShiftRightAssign | ExpressionKind.WrappingShiftLeftAssign | ExpressionKind.XorAssign
+	export type Assignment = {
+		tag: ExpressionTag.BitwiseAndAssign | ExpressionTag.BitwiseOrAssign | ExpressionTag.ConcatenateAssign |
+			ExpressionTag.LogicalAndAssign | ExpressionTag.LogicalOrAssign | ExpressionTag.NormalAssign |
+			ExpressionTag.NullishCoalesceAssign | ExpressionTag.ShiftLeftAssign |
+			ExpressionTag.ShiftRightAssign | ExpressionTag.WrappingShiftLeftAssign | ExpressionTag.XorAssign
 		binding: Identifier | GetMember | Destructure
 		value: Expression
 	}
 
-	export type Rement = Location & {
-		kind: ExpressionKind.Increment | ExpressionKind.Decrement | ExpressionKind.WrappingIncrement |
-			ExpressionKind.WrappingDecrement
+	export type Rement = {
+		tag: ExpressionTag.Increment | ExpressionTag.Decrement | ExpressionTag.WrappingIncrement |
+			ExpressionTag.WrappingDecrement
 		binding: Identifier | GetMember
 	}
 
-	export type KeywordPrimitive = Location & {
-		kind: ExpressionKind.Any | ExpressionKind.Boolean | ExpressionKind.False | ExpressionKind.Float128Type |
-			ExpressionKind.Float16Type | ExpressionKind.Float32Type | ExpressionKind.Float64Type | ExpressionKind.Null |
-			ExpressionKind.ObjectType | ExpressionKind.True
+	export type KeywordPrimitive = {
+		tag: ExpressionTag.Any | ExpressionTag.Boolean | ExpressionTag.False | ExpressionTag.Float128Type |
+			ExpressionTag.Float16Type | ExpressionTag.Float32Type | ExpressionTag.Float64Type | ExpressionTag.Null |
+			ExpressionTag.ObjectType | ExpressionTag.True
 	}
 
-	export type DeclaredImport = Location & {
-		kind: ExpressionKind.DeclaredImport
+	export type DeclaredImport = {
+		tag: ExpressionTag.DeclaredImport
 		module: string
 		members: { name: string, as: string, type: Expression }[]
 	}
 
-	export type Destructure = Location & {
-		kind: ExpressionKind.Destructure
+	export type Destructure = {
+		tag: ExpressionTag.Destructure
 		members: { name: string, as: Identifier | Destructure, defaultValue: Expression | undefined }[]
 	}
 
 	export type Enum = Location &
-		{ kind: ExpressionKind.Enum, name: string, members: { name: string, type: Expression | undefined }[] }
+		{ tag: ExpressionTag.Enum, name: string, members: { name: string, type: Expression | undefined }[] }
 
 	export type ErrorEnum = Location &
-		{ kind: ExpressionKind.ErrorEnum, name: string, members: { name: string, type: Expression | undefined }[] }
+		{ tag: ExpressionTag.ErrorEnum, name: string, members: { name: string, type: Expression | undefined }[] }
 
-	export type Function = Location & {
-		kind: ExpressionKind.Function
+	export type Function = {
+		tag: ExpressionTag.Function
 		name: string
 		// eslint-disable-next-line @typescript-eslint/ban-types
 		parameter: Identifier | Object
@@ -1028,60 +1025,60 @@ export namespace Expression {
 	}
 
 	export type FunctionType = Location &
-		{ kind: ExpressionKind.FunctionType, argumentType: Expression, returnType: Expression }
+		{ tag: ExpressionTag.FunctionType, argumentType: Expression, returnType: Expression }
 
-	export type If = Location & {
-		kind: ExpressionKind.If
+	export type If = {
+		tag: ExpressionTag.If
 		condition: Expression
 		truthyBranch: Expression
 		falseyBranch: Expression | undefined
 	}
 
 	export type Import = Location &
-		{ kind: ExpressionKind.Import, path: string, as: string | ImportDestructureMember[] | undefined }
+		{ tag: ExpressionTag.Import, path: string, as: string | ImportDestructureMember[] | undefined }
 
-	export type Let = Location & {
-		kind: ExpressionKind.Let
+	export type Let = {
+		tag: ExpressionTag.Let
 		binding: Identifier | Destructure
 		type: Expression | undefined
 		initialValue: Expression | undefined
 	}
 
-	export type Object = Location & {
-		kind: ExpressionKind.Object
+	export type Object = {
+		tag: ExpressionTag.Object
 		entries: { name: string, type: Expression | undefined, value: Expression | undefined }[]
 	}
 
 	export type SignedIntegerLiteral = Location &
-		{ kind: ExpressionKind.SignedIntegerLiteral, value: bigint, bits: number }
+		{ tag: ExpressionTag.SignedIntegerLiteral, value: bigint, bits: number }
 
 	export type SignedIntegerType = Location &
-		{ kind: ExpressionKind.SignedIntegerType, bits: number | undefined }
+		{ tag: ExpressionTag.SignedIntegerType, bits: number | undefined }
 
 	export type UnsignedIntegerLiteral = Location &
-		{ kind: ExpressionKind.UnsignedIntegerLiteral, value: bigint, bits: number }
+		{ tag: ExpressionTag.UnsignedIntegerLiteral, value: bigint, bits: number }
 
 	export type UnsignedIntegerType = Location &
-		{ kind: ExpressionKind.UnsignedIntegerType, bits: number | undefined }
+		{ tag: ExpressionTag.UnsignedIntegerType, bits: number | undefined }
 
-	export type Array = Location & { kind: ExpressionKind.Array, expressions: Expression[] }
-	export type BitwiseNot = Location & { kind: ExpressionKind.BitwiseNot, expression: Expression }
-	export type Call = Location & { kind: ExpressionKind.Call, called: Expression, argument: Expression }
-	export type Do = Location & { kind: ExpressionKind.Do, body: Expression[] }
-	export type Float16Literal = Location & { kind: ExpressionKind.Float16Literal, value: number }
-	export type Float32Literal = Location & { kind: ExpressionKind.Float32Literal, value: number }
-	export type Float64Literal = Location & { kind: ExpressionKind.Float64Literal, value: number }
-	export type Float128Literal = Location & { kind: ExpressionKind.Float128Literal, value: number }
-	export type GetMember = Location & { kind: ExpressionKind.GetMember, expression: Expression, name: string }
-	export type GlobalError = Location & { kind: ExpressionKind.GlobalError, name: string }
-	export type Identifier = Location & { kind: ExpressionKind.Identifier, name: string }
-	export type LogicalNot = Location & { kind: ExpressionKind.LogicalNot, expression: Expression }
-	export type Loop = Location & { kind: ExpressionKind.Loop, body: Expression[] }
-	export type MinusPrefix = Location & { kind: ExpressionKind.MinusPrefix, expression: Expression }
-	export type Return = Location & { kind: ExpressionKind.Return, expression: Expression | undefined }
-	export type String = Location & { kind: ExpressionKind.String, value: string }
-	export type Void = Location & { kind: ExpressionKind.Void, expression: Expression }
-	export type While = Location & { kind: ExpressionKind.While, condition: Expression, body: Expression[] }
+	export type Array = { tag: ExpressionTag.Array, expressions: Expression[] }
+	export type BitwiseNot = { tag: ExpressionTag.BitwiseNot, expression: Expression }
+	export type Call = { tag: ExpressionTag.Call, called: Expression, argument: Expression }
+	export type Do = { tag: ExpressionTag.Do, body: Expression[] }
+	export type Float16Literal = { tag: ExpressionTag.Float16Literal, value: number }
+	export type Float32Literal = { tag: ExpressionTag.Float32Literal, value: number }
+	export type Float64Literal = { tag: ExpressionTag.Float64Literal, value: number }
+	export type Float128Literal = { tag: ExpressionTag.Float128Literal, value: number }
+	export type GetMember = { tag: ExpressionTag.GetMember, expression: Expression, name: string }
+	export type Identifier = { tag: ExpressionTag.Identifier, name: string }
+	export type LogicalNot = { tag: ExpressionTag.LogicalNot, expression: Expression }
+	export type Loop = { tag: ExpressionTag.Loop, body: Expression[] }
+	export type MinusPrefix = { tag: ExpressionTag.MinusPrefix, expression: Expression }
+	export type Return = { tag: ExpressionTag.Return, expression: Expression | undefined }
+	export type String = { tag: ExpressionTag.String, value: string }
+	export type Void = { tag: ExpressionTag.Void, expression: Expression }
+	export type While = { tag: ExpressionTag.While, condition: Expression, body: Expression[] }
+	export type ErrorTag = { tag: ExpressionTag.ErrorTag, name: string, type: Expression | undefined }
 }
 
 export type ImportDestructureMember = { name: string, as: string | ImportDestructureMember[] }
