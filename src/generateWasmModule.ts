@@ -1,4 +1,4 @@
-/* eslint-disable unicorn/no-null */
+/* eslint-disable unicorn/no-null, @typescript-eslint/brace-style */
 import { assert, ensure } from "@samual/lib/assert"
 import binaryen from "binaryen"
 import { ExpressionTag, type Expression } from "./parse"
@@ -16,7 +16,7 @@ export const generateWasmModule = (expressions: Expression[]) => {
 	const module = new binaryen.Module()
 
 	const generateWASMExpression = (expression: Expression, context: Context): number => {
-		switch (expression.kind) {
+		switch (expression.tag) {
 			case ExpressionTag.Return:
 				return module.return(expression.expression && generateWASMExpression(expression.expression, context))
 
@@ -42,9 +42,9 @@ export const generateWasmModule = (expressions: Expression[]) => {
 
 			case ExpressionTag.Let: {
 				assert(expression.type, HERE)
-				assert(expression.type.kind == ExpressionTag.SignedIntegerType, HERE)
+				assert(expression.type.tag == ExpressionTag.SignedIntegerType, HERE)
 				assert(expression.type.bits == 32, HERE)
-				assert(expression.binding.kind == ExpressionTag.Identifier, HERE)
+				assert(expression.binding.tag == ExpressionTag.Identifier, HERE)
 
 				const index = context.locals.push(binaryen.i32)
 
@@ -86,7 +86,7 @@ export const generateWasmModule = (expressions: Expression[]) => {
 			}
 
 			case ExpressionTag.NormalAssign: {
-				assert(expression.binding.kind == ExpressionTag.Identifier, HERE)
+				assert(expression.binding.tag == ExpressionTag.Identifier, HERE)
 
 				const reference = ensure(context.references.get(expression.binding.name), HERE)
 
@@ -167,7 +167,7 @@ export const generateWasmModule = (expressions: Expression[]) => {
 			case ExpressionTag.Function: {
 				assert(expression.returnType, HERE)
 				assert(expression.parameterType, HERE)
-				assert(expression.parameter.kind == ExpressionTag.Identifier, HERE)
+				assert(expression.parameter.tag == ExpressionTag.Identifier, HERE)
 
 				const returnType = evaluateType(expression.returnType)
 				const type = evaluateType(expression.parameterType)
@@ -232,7 +232,7 @@ export const generateWasmModule = (expressions: Expression[]) => {
 			}
 
 			default:
-				throw Error(`${HERE} ${ExpressionTag[expression.kind]}`)
+				throw Error(`${HERE} ${ExpressionTag[expression.tag]}`)
 		}
 	}
 
@@ -247,9 +247,9 @@ export const generateWasmModule = (expressions: Expression[]) => {
 			module.block(
 				null,
 				expressions.map(expression => {
-					if (expression.kind == ExpressionTag.Let) {
+					if (expression.tag == ExpressionTag.Let) {
 						assert(expression.type, HERE)
-						assert(expression.binding.kind == ExpressionTag.Identifier, HERE)
+						assert(expression.binding.tag == ExpressionTag.Identifier, HERE)
 
 						const type = evaluateType(expression.type)
 
@@ -275,7 +275,7 @@ export const generateWasmModule = (expressions: Expression[]) => {
 export default generateWasmModule
 
 export const evaluateType = (expression: Expression) => {
-	switch (expression.kind) {
+	switch (expression.tag) {
 		case ExpressionTag.SignedIntegerType: {
 			assert(expression.bits == 32, HERE)
 
@@ -286,7 +286,7 @@ export const evaluateType = (expression: Expression) => {
 			return binaryen.none
 
 		default:
-			throw Error(`${HERE} ${ExpressionTag[expression.kind]}`)
+			throw Error(`${HERE} ${ExpressionTag[expression.tag]}`)
 	}
 }
 

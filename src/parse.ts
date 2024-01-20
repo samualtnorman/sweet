@@ -137,7 +137,7 @@ export function* parseExpressions(
 		assert(state.cursor < tokens.length, HERE)
 
 		const firstToken = tokens[state.cursor]!
-		let expression: Expression
+		let expression!: Expression
 
 		const location: Location = { index: firstToken.index, line: firstToken.line, column: firstToken.column }
 
@@ -585,9 +585,7 @@ export function* parseExpressions(
 			case TokenTag.ErrorKeyword: {
 				state.cursor++
 
-				const identifier = expectToken(TokenTag.Identifier)
-
-
+				// const identifier = expectToken(TokenTag.Identifier)
 
 				if (nextTokenIs(TokenTag.Identifier)) {
 					expression = {
